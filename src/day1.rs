@@ -17,6 +17,7 @@
 //!
 //! Starting with a frequency of zero, what is the resulting frequency after all of the changes in frequency have been applied?
 
+use std::collections::BTreeMap;
 use std::io;
 
 #[derive(Debug)]
@@ -32,23 +33,60 @@ enum FrequencyOperation {
 }
 
 pub fn part1() {
-    let mut input = String::new();
+    let input = read_input();
+    let changes = build_changes(input);
 
-    {
-        let mut line = String::new();
-
-        println!("enter puzzle input followed by an empty line:");
-        loop {
-            io::stdin().read_line(&mut line).unwrap();
-            if line.trim() == "" {
-                break;
-            }
-            input.push_str(&line);
-            line.clear();
+    let mut frequency: i64 = 0;
+    for change in changes.iter() {
+        frequency = match change.operation {
+            FrequencyOperation::Add => frequency + change.magnitude,
+            FrequencyOperation::Subtract => frequency - change.magnitude,
         }
     }
 
+    println!("the resulting frequency: {}", frequency);
+}
+
+pub fn part2() {
+    let input = read_input();
+    let changes = build_changes(input);
+
     let mut frequency: i64 = 0;
+    let mut frequency_seen: BTreeMap<i64, bool> = BTreeMap::new();
+    'find_duplicate: loop {
+        for change in changes.iter() {
+            frequency = match change.operation {
+                FrequencyOperation::Add => frequency + change.magnitude,
+                FrequencyOperation::Subtract => frequency - change.magnitude,
+            };
+            if frequency_seen.contains_key(&frequency) {
+                break 'find_duplicate;
+            }
+            frequency_seen.insert(frequency, true);
+        }
+    }
+
+    println!("the first duplicate resulting frequency: {}", frequency);
+}
+
+fn read_input() -> String {
+    let mut input = String::new();
+    let mut line = String::new();
+
+    println!("enter puzzle input followed by an empty line:");
+    loop {
+        io::stdin().read_line(&mut line).unwrap();
+        if line.trim() == "" {
+            break;
+        }
+        input.push_str(&line);
+        line.clear();
+    }
+
+    input
+}
+
+fn build_changes(input: String) -> Vec<FrequencyChange> {
     let mut changes = Vec::new();
 
     for line in input.lines() {
@@ -66,12 +104,5 @@ pub fn part1() {
         })
     }
 
-    for change in changes.iter() {
-        frequency = match change.operation {
-            FrequencyOperation::Add => frequency + change.magnitude,
-            FrequencyOperation::Subtract => frequency - change.magnitude,
-        }
-    }
-
-    println!("the resulting frequency: {}", frequency);
+    changes
 }

@@ -9,8 +9,9 @@ fn main() {
         std::process::exit(1);
     }
 
-    let mut puzzle_solution_map = BTreeMap::new();
+    let mut puzzle_solution_map: BTreeMap<&str, fn()> = BTreeMap::new();
     puzzle_solution_map.insert("day1::part1", advent_of_code_2018::day1::part1);
+    puzzle_solution_map.insert("day1::part2", advent_of_code_2018::day1::part2);
 
     let command = args[1].as_str();
     if command == "list" {
