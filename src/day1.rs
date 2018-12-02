@@ -7,7 +7,6 @@
 //! Collect stars by solving puzzles. Two puzzles will be made available on each day in the advent calendar; the second puzzle is unlocked when you complete the first. Each puzzle grants one star. Good luck!
 
 use std::collections::BTreeMap;
-use std::io;
 
 #[derive(Debug)]
 struct FrequencyChange {
@@ -40,7 +39,7 @@ enum FrequencyOperation {
 ///
 /// Starting with a frequency of zero, what is the resulting frequency after all of the changes in frequency have been applied?
 pub fn part1() {
-    let input = read_input();
+    let input = ::common::read_stdin_to_string();
     let changes = build_changes(input);
 
     let mut frequency: i64 = 0;
@@ -77,7 +76,7 @@ pub fn part1() {
 ///
 /// What is the first frequency your device reaches twice?
 pub fn part2() {
-    let input = read_input();
+    let input = ::common::read_stdin_to_string();
     let changes = build_changes(input);
 
     let mut frequency: i64 = 0;
@@ -96,23 +95,6 @@ pub fn part2() {
     }
 
     println!("the first duplicate resulting frequency: {}", frequency);
-}
-
-fn read_input() -> String {
-    let mut input = String::new();
-    let mut line = String::new();
-
-    println!("enter puzzle input followed by an empty line:");
-    loop {
-        io::stdin().read_line(&mut line).unwrap();
-        if line.trim() == "" {
-            break;
-        }
-        input.push_str(&line);
-        line.clear();
-    }
-
-    input
 }
 
 fn build_changes(input: String) -> Vec<FrequencyChange> {

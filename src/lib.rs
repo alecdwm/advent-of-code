@@ -1,3 +1,4 @@
+mod common;
 pub mod day1;
 
 #[cfg(test)]
