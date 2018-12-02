@@ -6,7 +6,7 @@
 //!
 //! Collect stars by solving puzzles. Two puzzles will be made available on each day in the advent calendar; the second puzzle is unlocked when you complete the first. Each puzzle grants one star. Good luck!
 
-use std::collections::BTreeMap;
+use std::collections::BTreeSet;
 
 #[derive(Debug)]
 struct FrequencyChange {
@@ -80,17 +80,17 @@ pub fn part2() {
     let changes = build_changes(input);
 
     let mut frequency: i64 = 0;
-    let mut frequency_seen: BTreeMap<i64, bool> = BTreeMap::new();
+    let mut frequency_seen: BTreeSet<i64> = BTreeSet::new();
     'find_duplicate: loop {
         for change in changes.iter() {
             frequency = match change.operation {
                 FrequencyOperation::Add => frequency + change.magnitude,
                 FrequencyOperation::Subtract => frequency - change.magnitude,
             };
-            if frequency_seen.contains_key(&frequency) {
+            if frequency_seen.contains(&frequency) {
                 break 'find_duplicate;
             }
-            frequency_seen.insert(frequency, true);
+            frequency_seen.insert(frequency);
         }
     }
 
