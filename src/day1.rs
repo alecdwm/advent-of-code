@@ -31,7 +31,7 @@ enum FrequencyOperation {
     Subtract,
 }
 
-pub fn day1() {
+pub fn part1() {
     let mut input = String::new();
 
     {
