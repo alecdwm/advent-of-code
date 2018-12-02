@@ -63,3 +63,61 @@ pub fn part1() {
 
     println!("the checksum for your list of box IDs: {}", checksum);
 }
+
+/// Confident that your list of box IDs is complete, you're ready to find the boxes full of prototype fabric.
+///
+/// The boxes will have IDs which differ by exactly one character at the same position in both strings. For example, given the following box IDs:
+///
+/// abcde
+/// fghij
+/// klmno
+/// pqrst
+/// fguij
+/// axcye
+/// wvxyz
+///
+/// The IDs abcde and axcye are close, but they differ by two characters (the second and fourth). However, the IDs fghij and fguij differ by exactly one character, the third (h and u). Those must be the correct boxes.
+///
+/// What letters are common between the two correct box IDs? (In the example above, this is found by removing the differing character from either ID, producing fgij.)
+pub fn part2() {
+    let input = ::common::read_stdin_to_string();
+
+    let matches = find_part2_matches(input).expect("No matches found");
+
+    let common_letters: String = matches
+        .0
+        .chars()
+        .zip(matches.1.chars())
+        .filter(|(letter_1, letter_2)| letter_1 == letter_2)
+        .map(|letters| letters.0)
+        .collect();
+
+    println!(
+        "the common letters between the two correct box IDs: {}",
+        common_letters
+    );
+}
+
+fn find_part2_matches(input: String) -> Option<(String, String)> {
+    for box_id_1 in input.lines() {
+        'test_inner: for box_id_2 in input.lines() {
+            if box_id_1 == box_id_2 {
+                continue;
+            }
+
+            let mut differences = 0;
+            for (letter_1, letter_2) in box_id_1.chars().zip(box_id_2.chars()) {
+                if letter_1 != letter_2 {
+                    differences += 1;
+                    if differences > 1 {
+                        continue 'test_inner;
+                    }
+                }
+            }
+            if differences == 1 {
+                return Some((box_id_1.to_string(), box_id_2.to_string()));
+            }
+        }
+    }
+    None
+}
