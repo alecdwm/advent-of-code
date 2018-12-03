@@ -3,6 +3,7 @@
 #################
 **/*.rs.bk
 /target
+data
 
 ######################
 # OS generated files #
