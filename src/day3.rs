@@ -68,6 +68,48 @@ pub fn part1() {
     );
 }
 
+/// Amidst the chaos, you notice that exactly one claim doesn't overlap by even a single square inch of fabric with any other claim. If you can somehow draw attention to it, maybe the Elves will be able to make Santa's suit after all!
+///
+/// For example, in the claims above, only claim 3 is intact after all claims are made.
+///
+/// What is the ID of the only claim that doesn't overlap?
+pub fn part2() {
+    let input = ::common::read_stdin_to_string();
+
+    let mut fabric: BTreeMap<(i64, i64), u8> = BTreeMap::new();
+    let mut claims: Vec<FabricClaim> = Vec::new();
+
+    for line in input.lines() {
+        let claim: FabricClaim = line.parse().expect("Parsing fabric claim");
+        for w in 0..claim.width {
+            for h in 0..claim.height {
+                let index = (claim.pos_x + w, claim.pos_y + h);
+                *fabric.entry(index).or_insert(0) += 1;
+            }
+        }
+        claims.push(line.parse().expect("Parsing fabric claim"));
+    }
+
+    let mut free_claim_id = -1;
+
+    'claim_loop: for claim in claims.iter() {
+        for w in 0..claim.width {
+            for h in 0..claim.height {
+                let index = (claim.pos_x + w, claim.pos_y + h);
+                if *fabric.get(&index).unwrap() > 1 {
+                    continue 'claim_loop;
+                }
+            }
+        }
+        free_claim_id = claim.id;
+    }
+
+    println!(
+        "the ID of the only claim that doesn't overlap: {}",
+        free_claim_id
+    );
+}
+
 #[derive(Debug)]
 struct FabricClaim {
     id: i64,
