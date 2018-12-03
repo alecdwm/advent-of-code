@@ -48,15 +48,10 @@ use std::str::FromStr;
 pub fn part1() {
     let input = ::common::read_stdin_to_string();
 
-    let mut claims: Vec<FabricClaim> = Vec::new();
-
-    for line in input.lines() {
-        claims.push(line.parse().expect("Parsing fabric claim"));
-    }
-
     let mut fabric: BTreeMap<(i64, i64), u8> = BTreeMap::new();
 
-    for claim in claims.iter() {
+    for line in input.lines() {
+        let claim: FabricClaim = line.parse().expect("Parsing fabric claim");
         for w in 0..claim.width {
             for h in 0..claim.height {
                 let index = (claim.pos_x + w, claim.pos_y + h);
