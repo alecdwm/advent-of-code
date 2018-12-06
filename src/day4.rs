@@ -56,9 +56,86 @@ pub fn part1() {
     let mut sorted_input: Vec<_> = input.lines().collect();
     sorted_input.sort();
 
-    let mut sleep_schedule: BTreeMap<i64, (i64, Vec<i64>)> = BTreeMap::new();
+    let sleep_schedule = build_part_1_sleep_schedule(sorted_input);
+
+    let most_slept_guard = &sleep_schedule
+        .iter()
+        .fold((0, 0), |most_slept, (k, v)| {
+            if most_slept.0 < v.0 {
+                (v.0, *k)
+            } else {
+                most_slept
+            }
+        }).1;
+
+    let mut slept_minutes: BTreeMap<i64, i64> = BTreeMap::new();
+    for minute in &sleep_schedule.get(&most_slept_guard).unwrap().1 {
+        *slept_minutes.entry(*minute).or_insert(0) += 1;
+    }
+
+    let most_slept_minute = slept_minutes
+        .iter()
+        .fold((0, 0), |most_slept, (k, v)| {
+            if most_slept.1 < *v {
+                (*k, *v)
+            } else {
+                most_slept
+            }
+        }).0;
+
+    println!(
+        "the id of the guard ({}) multiplied by the minute ({}): {}",
+        most_slept_guard,
+        most_slept_minute,
+        most_slept_guard * most_slept_minute
+    );
+}
+
+/// Strategy 2: Of all guards, which guard is most frequently asleep on the same minute?
+///
+/// In the example above, Guard #99 spent minute 45 asleep more than any other guard or minute - three times in total. (In all other cases, any guard spent any minute asleep at most twice.)
+///
+/// What is the ID of the guard you chose multiplied by the minute you chose? (In the above example, the answer would be 99 * 45 = 4455.)
+pub fn part2() {
+    let input = ::common::read_stdin_to_string();
+
+    let mut sorted_input: Vec<_> = input.lines().collect();
+    sorted_input.sort();
+
+    let sleep_schedule = build_part_2_sleep_schedule(sorted_input);
+
+    let most_slept_count_and_minute_and_guard =
+        &sleep_schedule
+            .iter()
+            .fold((0, 0, 0), |most_slept, (guard, minutes)| {
+                minutes
+                    .iter()
+                    .fold(most_slept, |most_slept, (minute, slept_count)| {
+                        if most_slept.0 < *slept_count {
+                            (*slept_count, *minute, *guard)
+                        } else {
+                            most_slept
+                        }
+                    })
+            });
+    let most_slept_minute = most_slept_count_and_minute_and_guard.1;
+    let most_slept_guard = most_slept_count_and_minute_and_guard.2;
+
+    println!(
+        "the id of the guard ({}) multiplied by the minute ({}): {}",
+        most_slept_guard,
+        most_slept_minute,
+        most_slept_guard * most_slept_minute
+    );
+}
+
+fn build_part_1_sleep_schedule<'a, T: IntoIterator<Item = &'a str>>(
+    sorted_input: T,
+) -> BTreeMap<i64, (i64, Vec<i64>)> {
+    let mut sleep_schedule = BTreeMap::new();
     let mut guard = 0;
     let mut last_minute = 0;
+
     for line in sorted_input {
         let minute = line
             .chars()
@@ -100,38 +177,57 @@ pub fn part1() {
         }
     }
 
-    let most_slept_guard = sleep_schedule
-        .iter()
-        .fold((0, 0), |most_slept, (k, v)| {
-            if most_slept.0 < v.0 {
-                (v.0, *k)
-            } else {
-                most_slept
-            }
-        }).1;
+    sleep_schedule
+}
 
-    let mut slept_minutes: BTreeMap<i64, i64> = BTreeMap::new();
-    for minute in &sleep_schedule
-        .entry(most_slept_guard)
-        .or_insert((0, Vec::new()))
-        .1
-    {
-        *slept_minutes.entry(*minute).or_insert(0) += 1;
+fn build_part_2_sleep_schedule<'a, T: IntoIterator<Item = &'a str>>(
+    sorted_input: T,
+) -> BTreeMap<i64, BTreeMap<i64, i64>> {
+    let mut sleep_schedule = BTreeMap::new();
+    let mut guard = 0;
+    let mut last_minute = 0;
+
+    for line in sorted_input {
+        let minute = line
+            .chars()
+            .skip(15)
+            .take(2)
+            .collect::<String>()
+            .parse::<i64>()
+            .unwrap();
+
+        match line.split(' ').skip(2).next().unwrap() {
+            "Guard" => {
+                guard = line
+                    .split(' ')
+                    .skip(3)
+                    .next()
+                    .unwrap()
+                    .chars()
+                    .skip(1)
+                    .collect::<String>()
+                    .parse::<i64>()
+                    .unwrap();
+            }
+            "falls" => {
+                last_minute = minute;
+            }
+            "wakes" => {
+                let guard_entry = sleep_schedule.entry(guard).or_insert(BTreeMap::new());
+                let mut minutes_slept = minute - last_minute;
+                while minutes_slept < 0 {
+                    minutes_slept = 60 - minutes_slept;
+                }
+
+                for min in last_minute..(last_minute + minutes_slept) {
+                    *guard_entry.entry(min % 60).or_insert(0) += 1
+                }
+
+                last_minute = minute;
+            }
+            _ => panic!("unhandled input: {}", line),
+        }
     }
-    let most_slept_minute = slept_minutes
-        .iter()
-        .fold((0, 0), |most_slept, (k, v)| {
-            if most_slept.1 < *v {
-                (*k, *v)
-            } else {
-                most_slept
-            }
-        }).0;
 
-    println!(
-        "the id of the guard ({}) multiplied by the minute ({}): {}",
-        most_slept_guard,
-        most_slept_minute,
-        most_slept_guard * most_slept_minute
-    );
+    sleep_schedule
 }
