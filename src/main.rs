@@ -16,6 +16,7 @@ fn main() {
     puzzle_solution_map.insert("day2::part2", advent_of_code_2018::day2::part2);
     puzzle_solution_map.insert("day3::part1", advent_of_code_2018::day3::part1);
     puzzle_solution_map.insert("day3::part2", advent_of_code_2018::day3::part2);
+    puzzle_solution_map.insert("day4::part1", advent_of_code_2018::day4::part1);
 
     let command = args[1].as_str();
     if command == "list" {
