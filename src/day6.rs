@@ -53,7 +53,7 @@ use std::i64;
 ///
 /// What is the size of the largest area that isn't infinite?
 pub fn part1() {
-    let input = ::common::read_stdin_to_string();
+    let input = crate::common::read_stdin_to_string();
 
     let coords = input_to_coords(input);
     let bounds = get_bounds(&coords);
@@ -100,7 +100,7 @@ pub fn part1() {
 ///
 /// What is the size of the region containing all locations which have a total distance to all given coordinates of less than 10000?
 pub fn part2() {
-    let input = ::common::read_stdin_to_string();
+    let input = crate::common::read_stdin_to_string();
 
     let coords = input_to_coords(input);
     let bounds = get_bounds(&coords);
@@ -121,7 +121,8 @@ fn input_to_coords(input: String) -> Vec<(i64, i64)> {
                 split[0].trim().parse().unwrap(),
                 split[1].trim().parse().unwrap(),
             )
-        }).collect()
+        })
+        .collect()
 }
 
 fn get_bounds(coords: &[(i64, i64)]) -> ((i64, i64), (i64, i64)) {

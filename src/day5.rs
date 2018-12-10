@@ -22,7 +22,7 @@
 ///
 /// How many units remain after fully reacting the polymer you scanned?
 pub fn part1() {
-    let input = ::common::read_stdin_to_string();
+    let input = crate::common::read_stdin_to_string();
 
     let mut polymer: Vec<_> = input.trim().chars().collect();
 
@@ -51,7 +51,7 @@ pub fn part1() {
 ///
 /// What is the length of the shortest polymer you can produce by removing all units of exactly one type and fully reacting the result?
 pub fn part2() {
-    let input = ::common::read_stdin_to_string();
+    let input = crate::common::read_stdin_to_string();
 
     let polymer: Vec<_> = input.trim().chars().collect();
     let mut shortest_polymer = polymer.len();

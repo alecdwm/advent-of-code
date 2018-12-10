@@ -39,7 +39,7 @@ enum FrequencyOperation {
 ///
 /// Starting with a frequency of zero, what is the resulting frequency after all of the changes in frequency have been applied?
 pub fn part1() {
-    let input = ::common::read_stdin_to_string();
+    let input = crate::common::read_stdin_to_string();
     let changes = build_changes(input);
 
     let mut frequency: i64 = 0;
@@ -76,7 +76,7 @@ pub fn part1() {
 ///
 /// What is the first frequency your device reaches twice?
 pub fn part2() {
-    let input = ::common::read_stdin_to_string();
+    let input = crate::common::read_stdin_to_string();
     let changes = build_changes(input);
 
     let mut frequency: i64 = 0;

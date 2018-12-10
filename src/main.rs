@@ -1,5 +1,3 @@
-extern crate advent_of_code_2018;
-
 use std::collections::BTreeMap;
 
 fn main() {

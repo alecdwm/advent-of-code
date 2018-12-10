@@ -51,7 +51,7 @@ use std::collections::BTreeMap;
 ///
 /// What is the ID of the guard you chose multiplied by the minute you chose? (In the above example, the answer would be 10 * 24 = 240.)
 pub fn part1() {
-    let input = ::common::read_stdin_to_string();
+    let input = crate::common::read_stdin_to_string();
 
     let mut sorted_input: Vec<_> = input.lines().collect();
     sorted_input.sort();
@@ -66,7 +66,8 @@ pub fn part1() {
             } else {
                 most_slept
             }
-        }).1;
+        })
+        .1;
 
     let mut slept_minutes: BTreeMap<i64, i64> = BTreeMap::new();
     for minute in &sleep_schedule.get(&most_slept_guard).unwrap().1 {
@@ -81,7 +82,8 @@ pub fn part1() {
             } else {
                 most_slept
             }
-        }).0;
+        })
+        .0;
 
     println!(
         "the id of the guard ({}) multiplied by the minute ({}): {}",
@@ -97,7 +99,7 @@ pub fn part1() {
 ///
 /// What is the ID of the guard you chose multiplied by the minute you chose? (In the above example, the answer would be 99 * 45 = 4455.)
 pub fn part2() {
-    let input = ::common::read_stdin_to_string();
+    let input = crate::common::read_stdin_to_string();
 
     let mut sorted_input: Vec<_> = input.lines().collect();
     sorted_input.sort();

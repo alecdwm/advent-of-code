@@ -24,7 +24,7 @@ use std::collections::BTreeMap;
 ///
 /// What is the checksum for your list of box IDs?
 pub fn part1() {
-    let input = ::common::read_stdin_to_string();
+    let input = crate::common::read_stdin_to_string();
 
     let mut two_letter_checksum_component: i64 = 0;
     let mut three_letter_checksum_component: i64 = 0;
@@ -80,7 +80,7 @@ pub fn part1() {
 ///
 /// What letters are common between the two correct box IDs? (In the example above, this is found by removing the differing character from either ID, producing fgij.)
 pub fn part2() {
-    let input = ::common::read_stdin_to_string();
+    let input = crate::common::read_stdin_to_string();
 
     let matches = find_part2_matches(input).expect("No matches found");
 

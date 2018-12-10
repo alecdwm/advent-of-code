@@ -46,7 +46,7 @@ use std::str::FromStr;
 ///
 /// If the Elves all proceed with their own plans, none of them will have enough fabric. How many square inches of fabric are within two or more claims?
 pub fn part1() {
-    let input = ::common::read_stdin_to_string();
+    let input = crate::common::read_stdin_to_string();
 
     let mut fabric: BTreeMap<(i64, i64), u8> = BTreeMap::new();
 
@@ -74,7 +74,7 @@ pub fn part1() {
 ///
 /// What is the ID of the only claim that doesn't overlap?
 pub fn part2() {
-    let input = ::common::read_stdin_to_string();
+    let input = crate::common::read_stdin_to_string();
 
     let mut fabric: BTreeMap<(i64, i64), u8> = BTreeMap::new();
     let mut claims: Vec<FabricClaim> = Vec::new();
