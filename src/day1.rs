@@ -40,7 +40,7 @@ enum FrequencyOperation {
 /// Starting with a frequency of zero, what is the resulting frequency after all of the changes in frequency have been applied?
 pub fn part1() {
     let input = crate::common::read_stdin_to_string();
-    let changes = build_changes(input);
+    let changes = build_changes(&input);
 
     let mut frequency: i64 = 0;
     for change in changes.iter() {
@@ -77,7 +77,7 @@ pub fn part1() {
 /// What is the first frequency your device reaches twice?
 pub fn part2() {
     let input = crate::common::read_stdin_to_string();
-    let changes = build_changes(input);
+    let changes = build_changes(&input);
 
     let mut frequency: i64 = 0;
     let mut frequency_seen: BTreeSet<i64> = BTreeSet::new();
@@ -97,7 +97,7 @@ pub fn part2() {
     println!("the first duplicate resulting frequency: {}", frequency);
 }
 
-fn build_changes(input: String) -> Vec<FrequencyChange> {
+fn build_changes(input: &str) -> Vec<FrequencyChange> {
     let mut changes = Vec::new();
 
     for line in input.lines() {

@@ -42,7 +42,7 @@ pub fn part1() {
 
         let mut seen_two = false;
         let mut seen_three = false;
-        for (_, count) in &seen_letter_counts {
+        for count in seen_letter_counts.values() {
             if !seen_two && *count == 2 {
                 seen_two = true;
                 two_letter_checksum_component += 1;
@@ -82,7 +82,7 @@ pub fn part1() {
 pub fn part2() {
     let input = crate::common::read_stdin_to_string();
 
-    let matches = find_part2_matches(input).expect("No matches found");
+    let matches = find_part2_matches(&input).expect("No matches found");
 
     let common_letters: String = matches
         .0
@@ -98,7 +98,7 @@ pub fn part2() {
     );
 }
 
-fn find_part2_matches(input: String) -> Option<(String, String)> {
+fn find_part2_matches(input: &str) -> Option<(String, String)> {
     for box_id_1 in input.lines() {
         'test_inner: for box_id_2 in input.lines() {
             if box_id_1 == box_id_2 {

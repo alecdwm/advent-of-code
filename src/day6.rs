@@ -55,7 +55,7 @@ use std::i64;
 pub fn part1() {
     let input = crate::common::read_stdin_to_string();
 
-    let coords = input_to_coords(input);
+    let coords = input_to_coords(&input);
     let bounds = get_bounds(&coords);
     let areas = calculate_areas(&coords, bounds);
 
@@ -102,7 +102,7 @@ pub fn part1() {
 pub fn part2() {
     let input = crate::common::read_stdin_to_string();
 
-    let coords = input_to_coords(input);
+    let coords = input_to_coords(&input);
     let bounds = get_bounds(&coords);
     let region_size = calculate_region_size(&coords, bounds);
 
@@ -112,7 +112,7 @@ pub fn part2() {
     );
 }
 
-fn input_to_coords(input: String) -> Vec<(i64, i64)> {
+fn input_to_coords(input: &str) -> Vec<(i64, i64)> {
     input
         .lines()
         .map(|line| {

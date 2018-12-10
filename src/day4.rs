@@ -70,7 +70,7 @@ pub fn part1() {
         .1;
 
     let mut slept_minutes: BTreeMap<i64, i64> = BTreeMap::new();
-    for minute in &sleep_schedule.get(&most_slept_guard).unwrap().1 {
+    for minute in &sleep_schedule[&most_slept_guard].1 {
         *slept_minutes.entry(*minute).or_insert(0) += 1;
     }
 
@@ -147,12 +147,11 @@ fn build_part_1_sleep_schedule<'a, T: IntoIterator<Item = &'a str>>(
             .parse::<i64>()
             .unwrap();
 
-        match line.split(' ').skip(2).next().unwrap() {
+        match line.split(' ').nth(2).unwrap() {
             "Guard" => {
                 guard = line
                     .split(' ')
-                    .skip(3)
-                    .next()
+                    .nth(3)
                     .unwrap()
                     .chars()
                     .skip(1)
@@ -198,12 +197,11 @@ fn build_part_2_sleep_schedule<'a, T: IntoIterator<Item = &'a str>>(
             .parse::<i64>()
             .unwrap();
 
-        match line.split(' ').skip(2).next().unwrap() {
+        match line.split(' ').nth(2).unwrap() {
             "Guard" => {
                 guard = line
                     .split(' ')
-                    .skip(3)
-                    .next()
+                    .nth(3)
                     .unwrap()
                     .chars()
                     .skip(1)
@@ -215,7 +213,7 @@ fn build_part_2_sleep_schedule<'a, T: IntoIterator<Item = &'a str>>(
                 last_minute = minute;
             }
             "wakes" => {
-                let guard_entry = sleep_schedule.entry(guard).or_insert(BTreeMap::new());
+                let guard_entry = sleep_schedule.entry(guard).or_insert_with(BTreeMap::new);
                 let mut minutes_slept = minute - last_minute;
                 while minutes_slept < 0 {
                     minutes_slept = 60 - minutes_slept;

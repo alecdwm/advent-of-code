@@ -96,7 +96,7 @@ pub fn part2() {
         for w in 0..claim.width {
             for h in 0..claim.height {
                 let index = (claim.pos_x + w, claim.pos_y + h);
-                if *fabric.get(&index).unwrap() > 1 {
+                if fabric[&index] > 1 {
                     continue 'claim_loop;
                 }
             }
