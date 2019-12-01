@@ -2,14 +2,14 @@
 
 use std::io;
 
-/// Reads from stdin until an empty line is detected
+/// Reads from stdin until an empty line is encountered
 ///
 /// Returns the read data as a string
 pub fn read_stdin_to_string() -> String {
     let mut input = String::new();
     let mut line = String::new();
 
-    println!("enter puzzle input followed by an empty line:");
+    println!("Enter puzzle input followed by an empty line:");
     loop {
         io::stdin().read_line(&mut line).unwrap();
         if line.trim() == "" {

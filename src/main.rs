@@ -8,20 +8,20 @@ fn main() {
     }
 
     let mut puzzle_solution_map: BTreeMap<&str, fn()> = BTreeMap::new();
-    puzzle_solution_map.insert("day1::part1", advent_of_code_2018::day1::part1);
-    puzzle_solution_map.insert("day1::part2", advent_of_code_2018::day1::part2);
-    puzzle_solution_map.insert("day2::part1", advent_of_code_2018::day2::part1);
-    puzzle_solution_map.insert("day2::part2", advent_of_code_2018::day2::part2);
-    puzzle_solution_map.insert("day3::part1", advent_of_code_2018::day3::part1);
-    puzzle_solution_map.insert("day3::part2", advent_of_code_2018::day3::part2);
-    puzzle_solution_map.insert("day4::part1", advent_of_code_2018::day4::part1);
-    puzzle_solution_map.insert("day4::part2", advent_of_code_2018::day4::part2);
-    puzzle_solution_map.insert("day5::part1", advent_of_code_2018::day5::part1);
-    puzzle_solution_map.insert("day5::part2", advent_of_code_2018::day5::part2);
-    puzzle_solution_map.insert("day6::part1", advent_of_code_2018::day6::part1);
-    puzzle_solution_map.insert("day6::part2", advent_of_code_2018::day6::part2);
-    puzzle_solution_map.insert("day7::part1", advent_of_code_2018::day7::part1);
-    puzzle_solution_map.insert("day7::part2", advent_of_code_2018::day7::part2);
+    puzzle_solution_map.insert("y2018::day1::part1", advent_of_code::y2018::day1::part1);
+    puzzle_solution_map.insert("y2018::day1::part2", advent_of_code::y2018::day1::part2);
+    puzzle_solution_map.insert("y2018::day2::part1", advent_of_code::y2018::day2::part1);
+    puzzle_solution_map.insert("y2018::day2::part2", advent_of_code::y2018::day2::part2);
+    puzzle_solution_map.insert("y2018::day3::part1", advent_of_code::y2018::day3::part1);
+    puzzle_solution_map.insert("y2018::day3::part2", advent_of_code::y2018::day3::part2);
+    puzzle_solution_map.insert("y2018::day4::part1", advent_of_code::y2018::day4::part1);
+    puzzle_solution_map.insert("y2018::day4::part2", advent_of_code::y2018::day4::part2);
+    puzzle_solution_map.insert("y2018::day5::part1", advent_of_code::y2018::day5::part1);
+    puzzle_solution_map.insert("y2018::day5::part2", advent_of_code::y2018::day5::part2);
+    puzzle_solution_map.insert("y2018::day6::part1", advent_of_code::y2018::day6::part1);
+    puzzle_solution_map.insert("y2018::day6::part2", advent_of_code::y2018::day6::part2);
+    puzzle_solution_map.insert("y2018::day7::part1", advent_of_code::y2018::day7::part1);
+    puzzle_solution_map.insert("y2018::day7::part2", advent_of_code::y2018::day7::part2);
 
     let command = args[1].as_str();
     if command == "list" {
