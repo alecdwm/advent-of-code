@@ -2,9 +2,7 @@
 
 use std::io;
 
-/// Reads from stdin until an empty line is encountered
-///
-/// Returns the read data as a string
+/// Collects from stdin into a String until an empty line is encountered
 pub fn read_stdin_to_string() -> String {
     let mut input = String::new();
     let mut line = String::new();
