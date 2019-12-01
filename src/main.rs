@@ -23,6 +23,9 @@ fn main() {
     puzzle_solution_map.insert("y2018::day7::part1", advent_of_code::y2018::day7::part1);
     puzzle_solution_map.insert("y2018::day7::part2", advent_of_code::y2018::day7::part2);
 
+    puzzle_solution_map.insert("y2019::day1::part1", advent_of_code::y2019::day1::part1);
+    puzzle_solution_map.insert("y2019::day1::part2", advent_of_code::y2019::day1::part2);
+
     let command = args[1].as_str();
     if command == "list" {
         for puzzle_solution in puzzle_solution_map.keys() {
