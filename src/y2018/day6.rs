@@ -1,3 +1,5 @@
+//! --- Day 6: Chronal Coordinates ---
+//!
 //! The device on your wrist beeps several times, and once again you feel like you're falling.
 
 use std::cmp;
