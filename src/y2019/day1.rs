@@ -19,12 +19,11 @@
 pub fn part1() {
     let input = crate::common::read_stdin_to_string();
 
-    let fuel_required = input
-        .trim_end()
-        .split("\n")
-        .map(|line| line.parse::<f64>().expect("Invalid line"))
-        .map(|mass| simple_fuel_required_for_mass(mass))
-        .fold(0.0, |total_fuel, module_fuel| total_fuel + module_fuel);
+    let fuel_required: f64 = input
+        .lines()
+        .map(|line| line.parse::<f64>().expect("Failed to parse line as f64"))
+        .map(simple_fuel_required_for_mass)
+        .sum();
 
     println!(
         "The sum of the fuel requirements for all of the modules on your spacecraft: {} units",
@@ -46,12 +45,11 @@ pub fn part1() {
 pub fn part2() {
     let input = crate::common::read_stdin_to_string();
 
-    let fuel_required = input
-        .trim_end()
-        .split("\n")
-        .map(|line| line.parse::<f64>().expect("Invalid line"))
-        .map(|mass| recursive_fuel_required_for_mass(mass))
-        .fold(0.0, |total_fuel, module_fuel| total_fuel + module_fuel);
+    let fuel_required: f64 = input
+        .lines()
+        .map(|line| line.parse::<f64>().expect("Failed to parse line as f64"))
+        .map(recursive_fuel_required_for_mass)
+        .sum();
 
     println!(
         "The sum of the fuel requirements for all of the modules on your spacecraft when also taking into account the mass of the added fuel: {}",
@@ -60,13 +58,15 @@ pub fn part2() {
 }
 
 fn simple_fuel_required_for_mass(mass: f64) -> f64 {
-    (mass / 3.0).trunc() - 2.0
+    f64::max(0.0, (mass / 3.0).trunc() - 2.0)
 }
 
 fn recursive_fuel_required_for_mass(mass: f64) -> f64 {
     let fuel_required = simple_fuel_required_for_mass(mass);
-    if fuel_required <= 0.0 {
-        return 0.0;
+
+    if fuel_required > 0.0 {
+        return fuel_required + recursive_fuel_required_for_mass(fuel_required);
     }
-    fuel_required + recursive_fuel_required_for_mass(fuel_required)
+
+    fuel_required
 }
