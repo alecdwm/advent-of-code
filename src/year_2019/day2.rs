@@ -83,7 +83,43 @@ pub fn part1() {
 ///
 /// Find the input noun and verb that cause the program to produce the output 19690720. What is 100 * noun + verb? (For example, if noun=12 and verb=2, the answer would be 1202.)
 pub fn part2() {
-    unimplemented!();
+    let input = crate::common::read_stdin_to_string();
+    let program = IntcodeProgram::from(input.as_str());
+    let mut computer = IntcodeComputer::from(&program);
+
+    const DESIRED_OUTPUT: usize = 19690720;
+
+    let mut noun = 0;
+    let mut verb = 0;
+
+    loop {
+        computer.memory.replace(1, noun);
+        computer.memory.replace(2, verb);
+
+        computer = computer.run();
+
+        if *computer.memory.get(0) == DESIRED_OUTPUT {
+            break;
+        }
+
+        verb = (verb + 1) % 100;
+        if verb == 0 {
+            noun += 1;
+
+            if noun > 99 {
+                panic!(
+                    "No combination of verb and noun resulted in {}!",
+                    DESIRED_OUTPUT
+                );
+            }
+        }
+
+        computer.load(&program);
+    }
+
+    let result = 100 * noun + verb;
+
+    println!("100 * noun ({}) + verb ({}): {}", noun, verb, result);
 }
 
 #[derive(Debug)]
