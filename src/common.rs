@@ -1,5 +1,3 @@
-//! Common code used between the various puzzles
-
 use std::io;
 
 /// Collects from stdin into a String until an empty line is encountered

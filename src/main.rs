@@ -4,24 +4,24 @@ use std::env;
 fn main() {
     let mut puzzle_solutions: BTreeMap<&str, fn()> = BTreeMap::new();
 
-    puzzle_solutions.insert("y2018::day1::part1", advent_of_code::y2018::day1::part1);
-    puzzle_solutions.insert("y2018::day1::part2", advent_of_code::y2018::day1::part2);
-    puzzle_solutions.insert("y2018::day2::part1", advent_of_code::y2018::day2::part1);
-    puzzle_solutions.insert("y2018::day2::part2", advent_of_code::y2018::day2::part2);
-    puzzle_solutions.insert("y2018::day3::part1", advent_of_code::y2018::day3::part1);
-    puzzle_solutions.insert("y2018::day3::part2", advent_of_code::y2018::day3::part2);
-    puzzle_solutions.insert("y2018::day4::part1", advent_of_code::y2018::day4::part1);
-    puzzle_solutions.insert("y2018::day4::part2", advent_of_code::y2018::day4::part2);
-    puzzle_solutions.insert("y2018::day5::part1", advent_of_code::y2018::day5::part1);
-    puzzle_solutions.insert("y2018::day5::part2", advent_of_code::y2018::day5::part2);
-    puzzle_solutions.insert("y2018::day6::part1", advent_of_code::y2018::day6::part1);
-    puzzle_solutions.insert("y2018::day6::part2", advent_of_code::y2018::day6::part2);
-    puzzle_solutions.insert("y2018::day7::part1", advent_of_code::y2018::day7::part1);
-    puzzle_solutions.insert("y2018::day7::part2", advent_of_code::y2018::day7::part2);
+    puzzle_solutions.insert("2018::day1::part1", advent_of_code::year_2018::day1::part1);
+    puzzle_solutions.insert("2018::day1::part2", advent_of_code::year_2018::day1::part2);
+    puzzle_solutions.insert("2018::day2::part1", advent_of_code::year_2018::day2::part1);
+    puzzle_solutions.insert("2018::day2::part2", advent_of_code::year_2018::day2::part2);
+    puzzle_solutions.insert("2018::day3::part1", advent_of_code::year_2018::day3::part1);
+    puzzle_solutions.insert("2018::day3::part2", advent_of_code::year_2018::day3::part2);
+    puzzle_solutions.insert("2018::day4::part1", advent_of_code::year_2018::day4::part1);
+    puzzle_solutions.insert("2018::day4::part2", advent_of_code::year_2018::day4::part2);
+    puzzle_solutions.insert("2018::day5::part1", advent_of_code::year_2018::day5::part1);
+    puzzle_solutions.insert("2018::day5::part2", advent_of_code::year_2018::day5::part2);
+    puzzle_solutions.insert("2018::day6::part1", advent_of_code::year_2018::day6::part1);
+    puzzle_solutions.insert("2018::day6::part2", advent_of_code::year_2018::day6::part2);
+    puzzle_solutions.insert("2018::day7::part1", advent_of_code::year_2018::day7::part1);
+    puzzle_solutions.insert("2018::day7::part2", advent_of_code::year_2018::day7::part2);
 
-    puzzle_solutions.insert("y2019::day1::part1", advent_of_code::y2019::day1::part1);
-    puzzle_solutions.insert("y2019::day1::part2", advent_of_code::y2019::day1::part2);
-    puzzle_solutions.insert("y2019::day2::part1", advent_of_code::y2019::day2::part1);
+    puzzle_solutions.insert("2019::day1::part1", advent_of_code::year_2019::day1::part1);
+    puzzle_solutions.insert("2019::day1::part2", advent_of_code::year_2019::day1::part2);
+    puzzle_solutions.insert("2019::day2::part1", advent_of_code::year_2019::day2::part1);
 
     let command = match env::args().skip(1).next() {
         Some(command) => command,
