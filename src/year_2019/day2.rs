@@ -89,37 +89,35 @@ pub fn part2() {
 
     const DESIRED_OUTPUT: usize = 19690720;
 
-    let mut noun = 0;
-    let mut verb = 0;
+    let mut result = None;
+    'outer: for noun in 0..100 {
+        for verb in 0..100 {
+            computer.memory.replace(1, noun);
+            computer.memory.replace(2, verb);
 
-    loop {
-        computer.memory.replace(1, noun);
-        computer.memory.replace(2, verb);
+            computer = computer.run();
 
-        computer = computer.run();
-
-        if *computer.memory.get(0) == DESIRED_OUTPUT {
-            break;
-        }
-
-        verb = (verb + 1) % 100;
-        if verb == 0 {
-            noun += 1;
-
-            if noun > 99 {
-                panic!(
-                    "No combination of verb and noun resulted in {}!",
-                    DESIRED_OUTPUT
-                );
+            if *computer.memory.get(0) == DESIRED_OUTPUT {
+                result = Some((noun, verb));
+                break 'outer;
             }
-        }
 
-        computer.load(&program);
+            computer.load(&program);
+        }
     }
 
-    let result = 100 * noun + verb;
-
-    println!("100 * noun ({}) + verb ({}): {}", noun, verb, result);
+    match result {
+        None => panic!(
+            "No combination of noun and verb resulted in {}!",
+            DESIRED_OUTPUT
+        ),
+        Some((noun, verb)) => println!(
+            "100 * noun ({}) + verb ({}): {}",
+            noun,
+            verb,
+            100 * noun + verb
+        ),
+    }
 }
 
 #[derive(Debug)]
