@@ -51,119 +51,185 @@
 /// Once you have a working computer, the first step is to restore the gravity assist program (your puzzle input) to the "1202 program alarm" state it had just before the last computer caught fire. To do this, before running the program, replace position 1 with the value 12 and replace position 2 with the value 2. What value is left at position 0 after the program halts?
 pub fn part1() {
     let input = crate::common::read_stdin_to_string();
-    let program = IntcodeProgram::from(input.as_str());
-    let mut machine = IntcodeMachine::new(program);
+    let mut computer = IntcodeComputer::from(input.as_str());
 
     // restore the gravity assist program to the "1202 program alarm" state
-    machine.program.replace_instruction(1, 12);
-    machine.program.replace_instruction(2, 2);
+    computer.memory.replace(1, 12);
+    computer.memory.replace(2, 2);
 
-    let machine = machine.run();
+    let result = computer.run();
 
     println!(
         "The value left at position 0 after the program halts: {}",
-        machine.program.get_instruction(0)
+        result.memory.get(0)
     );
 }
 
-#[derive(Debug)]
-struct IntcodeMachine {
-    program: IntcodeProgram,
-    index: usize,
+/// "Good, the new computer seems to be working correctly! Keep it nearby during this mission - you'll probably use it again. Real Intcode computers support many more features than your new one, but we'll let you know what they are as you need them."
+///
+/// "However, your current priority should be to complete your gravity assist around the Moon. For this mission to succeed, we should settle on some terminology for the parts you've already built."
+///
+/// Intcode programs are given as a list of integers; these values are used as the initial state for the computer's memory. When you run an Intcode program, make sure to start by initializing memory to the program's values. A position in memory is called an address (for example, the first value in memory is at "address 0").
+///
+/// Opcodes (like 1, 2, or 99) mark the beginning of an instruction. The values used immediately after an opcode, if any, are called the instruction's parameters. For example, in the instruction 1,2,3,4, 1 is the opcode; 2, 3, and 4 are the parameters. The instruction 99 contains only an opcode and has no parameters.
+///
+/// The address of the current instruction is called the instruction pointer; it starts at 0. After an instruction finishes, the instruction pointer increases by the number of values in the instruction; until you add more instructions to the computer, this is always 4 (1 opcode + 3 parameters) for the add and multiply instructions. (The halt instruction would increase the instruction pointer by 1, but it halts the program instead.)
+///
+/// "With terminology out of the way, we're ready to proceed. To complete the gravity assist, you need to determine what pair of inputs produces the output 19690720."
+///
+/// The inputs should still be provided to the program by replacing the values at addresses 1 and 2, just like before. In this program, the value placed in address 1 is called the noun, and the value placed in address 2 is called the verb. Each of the two input values will be between 0 and 99, inclusive.
+///
+/// Once the program has halted, its output is available at address 0, also just like before. Each time you try a pair of inputs, make sure you first reset the computer's memory to the values in the program (your puzzle input) - in other words, don't reuse memory from a previous attempt.
+///
+/// Find the input noun and verb that cause the program to produce the output 19690720. What is 100 * noun + verb? (For example, if noun=12 and verb=2, the answer would be 1202.)
+pub fn part2() {
+    unimplemented!();
 }
 
-impl IntcodeMachine {
-    fn new(program: IntcodeProgram) -> Self {
-        Self { program, index: 0 }
+#[derive(Debug)]
+pub struct IntcodeComputer {
+    pub memory: IntcodeProgram,
+    instruction_pointer: usize,
+}
+
+impl IntcodeComputer {
+    pub fn load(&mut self, program: &IntcodeProgram) {
+        self.memory = program.clone();
+        self.instruction_pointer = 0;
     }
 
-    fn run(mut self) -> Self {
+    pub fn run(mut self) -> Self {
         loop {
-            let instruction = Instruction::from(&self);
+            let next_instruction = IntcodeInstruction::from(&self);
 
-            match instruction {
-                Instruction::Add(one, two, output) => {
-                    let one = self.program.get_instruction(one as usize);
-                    let two = self.program.get_instruction(two as usize);
+            match next_instruction {
+                IntcodeInstruction::Add(one_address, two_address, output_address) => {
+                    let one = *self.memory.get(one_address);
+                    let two = *self.memory.get(two_address);
 
-                    self.program.replace_instruction(output as usize, one + two)
+                    self.memory.replace(output_address, one + two)
                 }
 
-                Instruction::Multiply(one, two, output) => {
-                    let one = self.program.get_instruction(one as usize);
-                    let two = self.program.get_instruction(two as usize);
+                IntcodeInstruction::Multiply(one_address, two_address, output_address) => {
+                    let one = *self.memory.get(one_address);
+                    let two = *self.memory.get(two_address);
 
-                    self.program.replace_instruction(output as usize, one * two)
+                    self.memory.replace(output_address, one * two)
                 }
 
-                Instruction::Halt => break,
+                IntcodeInstruction::Halt => break,
             }
 
-            // done processing opcode, move to the next one by stepping forward 4 positions
-            self.index += 4;
+            self.instruction_pointer += next_instruction.length()
         }
 
         self
     }
 }
 
-#[derive(Debug)]
-enum Instruction {
-    Add(i64, i64, i64),
-    Multiply(i64, i64, i64),
-    Halt,
+impl From<&IntcodeProgram> for IntcodeComputer {
+    fn from(program: &IntcodeProgram) -> Self {
+        Self {
+            memory: program.clone(),
+            instruction_pointer: 0,
+        }
+    }
 }
 
-impl From<&IntcodeMachine> for Instruction {
-    fn from(state: &IntcodeMachine) -> Self {
-        let opcode = state.program.get_instruction(state.index);
-
-        match opcode {
-            1 => Instruction::Add(
-                state.program.get_instruction(state.index + 1),
-                state.program.get_instruction(state.index + 2),
-                state.program.get_instruction(state.index + 3),
-            ),
-            2 => Instruction::Multiply(
-                state.program.get_instruction(state.index + 1),
-                state.program.get_instruction(state.index + 2),
-                state.program.get_instruction(state.index + 3),
-            ),
-            99 => Instruction::Halt,
-            other => panic!("Invalid Opcode encountered: {}", other),
+impl From<&str> for IntcodeComputer {
+    fn from(string: &str) -> Self {
+        Self {
+            memory: IntcodeProgram::from(string),
+            instruction_pointer: 0,
         }
     }
 }
 
 #[derive(Debug)]
-struct IntcodeProgram {
-    instructions: Vec<i64>,
+enum IntcodeInstruction {
+    /// Adds the values from the first two addresses, writes the result to the third address
+    Add(usize, usize, usize),
+
+    /// Multiplies the values from the first two addresses, writes the result to the third address
+    Multiply(usize, usize, usize),
+
+    /// Halts the IntcodeComputer
+    Halt,
+}
+
+impl IntcodeInstruction {
+    pub fn length(&self) -> usize {
+        match self {
+            Self::Add(..) => 4,
+            Self::Multiply(..) => 4,
+            Self::Halt => 1,
+        }
+    }
+}
+
+impl From<&IntcodeComputer> for IntcodeInstruction {
+    fn from(state: &IntcodeComputer) -> Self {
+        let opcode = state.memory.get(state.instruction_pointer);
+
+        match opcode {
+            1 => Self::Add(
+                *state.memory.get(state.instruction_pointer + 1),
+                *state.memory.get(state.instruction_pointer + 2),
+                *state.memory.get(state.instruction_pointer + 3),
+            ),
+            2 => Self::Multiply(
+                *state.memory.get(state.instruction_pointer + 1),
+                *state.memory.get(state.instruction_pointer + 2),
+                *state.memory.get(state.instruction_pointer + 3),
+            ),
+            99 => Self::Halt,
+            other => panic!("Invalid Opcode encountered: {}", other),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct IntcodeProgram {
+    data: Vec<usize>,
 }
 
 impl IntcodeProgram {
-    fn get_instruction(&self, index: usize) -> i64 {
-        *self
-            .instructions
-            .get(index)
-            .expect("Failed to get instruction, index out of bounds!")
+    pub fn get(&self, address: usize) -> &usize {
+        self.data
+            .get(address)
+            .unwrap_or_else(|| panic!("Failed to get data at address {}", address))
     }
 
-    fn replace_instruction(&mut self, index: usize, replacement: i64) {
-        *self
-            .instructions
-            .get_mut(index)
-            .expect("Failed to get_mut instruction, index out of bounds!") = replacement
+    pub fn replace(&mut self, address: usize, replacement: usize) {
+        let integer = self
+            .data
+            .get_mut(address)
+            .unwrap_or_else(|| panic!("Failed to get_mut data at address {}", address));
+
+        *integer = replacement;
+    }
+
+    pub fn data(&self) -> &Vec<usize> {
+        &self.data
+    }
+
+    pub fn data_serialized(&self) -> String {
+        self.data
+            .iter()
+            .map(|integer| integer.to_string())
+            .collect::<Vec<String>>()
+            .join(",")
     }
 }
 
 impl From<&str> for IntcodeProgram {
     fn from(string: &str) -> Self {
         Self {
-            instructions: string
+            data: string
                 .trim()
                 .split(",")
-                .map(|instruction| instruction.parse::<i64>())
-                .map(|result| result.expect("Failed to parse Intcode instruction as i64"))
+                .map(|integer| integer.parse::<usize>())
+                .map(|parse_result| parse_result.expect("Failed to parse Intcode integer as usize"))
                 .collect(),
         }
     }
@@ -175,36 +241,20 @@ mod tests {
 
     #[test]
     fn test_part1_examples() {
-        assert_eq!(
-            IntcodeMachine::new(IntcodeProgram::from("1,0,0,0,99"))
-                .run()
-                .program
-                .instructions,
-            vec![2, 0, 0, 0, 99],
-        );
+        let examples = [
+            ("1,0,0,0,99", "2,0,0,0,99"),
+            ("2,3,0,3,99", "2,3,0,6,99"),
+            ("2,4,4,5,99,0", "2,4,4,5,99,9801"),
+            ("1,1,1,4,99,5,6,0,99", "30,1,1,4,2,5,6,0,99"),
+        ];
 
-        assert_eq!(
-            IntcodeMachine::new(IntcodeProgram::from("2,3,0,3,99"))
+        for example in &examples {
+            let result = IntcodeComputer::from(example.0)
                 .run()
-                .program
-                .instructions,
-            vec![2, 3, 0, 6, 99],
-        );
+                .memory
+                .data_serialized();
 
-        assert_eq!(
-            IntcodeMachine::new(IntcodeProgram::from("2,4,4,5,99,0"))
-                .run()
-                .program
-                .instructions,
-            vec![2, 4, 4, 5, 99, 9801],
-        );
-
-        assert_eq!(
-            IntcodeMachine::new(IntcodeProgram::from("1,1,1,4,99,5,6,0,99"))
-                .run()
-                .program
-                .instructions,
-            vec![30, 1, 1, 4, 2, 5, 6, 0, 99],
-        );
+            assert_eq!(result, example.1);
+        }
     }
 }
