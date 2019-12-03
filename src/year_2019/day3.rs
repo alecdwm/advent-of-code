@@ -63,6 +63,57 @@ pub fn part1() {
     );
 }
 
+/// It turns out that this circuit is very timing-sensitive; you actually need to minimize the signal delay.
+///
+/// To do this, calculate the number of steps each wire takes to reach each intersection; choose the intersection where the sum of both wires' steps is lowest. If a wire visits a position on the grid multiple times, use the steps value from the first time it visits that position when calculating the total value of a specific intersection.
+///
+/// The number of steps a wire takes is the total number of grid squares the wire has entered to get to that location, including the intersection being considered. Again consider the example from above:
+///
+/// ...........
+/// .+-----+...
+/// .|.....|...
+/// .|..+--X-+.
+/// .|..|..|.|.
+/// .|.-X--+.|.
+/// .|..|....|.
+/// .|.......|.
+/// .o-------+.
+/// ...........
+///
+/// In the above example, the intersection closest to the central port is reached after 8+5+5+2 = 20 steps by the first wire and 7+6+4+3 = 20 steps by the second wire for a total of 20+20 = 40 steps.
+///
+/// However, the top-right intersection is better: the first wire takes only 8+5+2 = 15 and the second wire takes only 7+6+2 = 15, a total of 15+15 = 30 steps.
+///
+/// Here are the best steps for the extra examples from above:
+///
+///     R75,D30,R83,U83,L12,D49,R71,U7,L72
+///     U62,R66,U55,R34,D71,R55,D58,R83 = 610 steps
+///     R98,U47,R26,D63,R33,U87,L62,D20,R33,U53,R51
+///     U98,R91,D20,R16,D67,R40,U7,R15,U6,R7 = 410 steps
+///
+/// What is the fewest combined steps the wires must take to reach an intersection?
+pub fn part2() {
+    let input = crate::common::read_stdin_to_string();
+    let wires = Wire::parse_wires(input.as_str());
+
+    let first_wire = wires.get(0).expect("Missing first wire");
+    let second_wire = wires.get(1).expect("Missing second wire");
+
+    let min_distance = first_wire
+        .intersections(second_wire)
+        .iter()
+        .map(|intersection| {
+            first_wire.trace_distance(intersection) + second_wire.trace_distance(intersection)
+        })
+        .min()
+        .expect("No intersections found!");
+
+    println!(
+        "The fewest combined steps the wires must take to reach an intersection: {}",
+        min_distance
+    );
+}
+
 #[derive(Debug)]
 struct Wire {
     points: Vec<Point>,
@@ -146,6 +197,43 @@ impl Wire {
         }
 
         intersections
+    }
+
+    fn trace_distance(&self, target: &Point) -> i64 {
+        let mut distance = 0;
+
+        for line_segment in self.points.windows(2) {
+            let start = line_segment[0];
+            let end = line_segment[1];
+
+            let min_x = i64::min(start.x, end.x);
+            let max_x = i64::max(start.x, end.x);
+            let min_y = i64::min(start.y, end.y);
+            let max_y = i64::max(start.y, end.y);
+
+            if min_x == max_x {
+                let x = min_x;
+
+                if target.x == x && min_y <= target.y && target.y <= max_y {
+                    distance += (target.y - start.y).abs();
+                    break;
+                }
+
+                distance += max_y - min_y
+            } else {
+                assert_eq!(min_y, max_y);
+                let y = min_y;
+
+                if target.y == y && min_x <= target.x && target.x <= max_x {
+                    distance += (target.x - start.x).abs();
+                    break;
+                }
+
+                distance += max_x - min_x
+            }
+        }
+
+        distance
     }
 
     fn add_point_from_segment(&mut self, wire_segment: &str) {
@@ -279,6 +367,40 @@ mod tests {
                 .intersections(second_wire)
                 .iter()
                 .map(|intersection| origin.manhattan_distance(intersection))
+                .min()
+                .expect("No intersections found!");
+
+            assert_eq!(min_distance, example.1);
+        }
+    }
+
+    #[test]
+    fn test_part2_examples() {
+        let examples = [
+            ("R8,U5,L5,D3\nU7,R6,D4,L4", 30),
+            (
+                "R75,D30,R83,U83,L12,D49,R71,U7,L72\nU62,R66,U55,R34,D71,R55,D58,R83",
+                610,
+            ),
+            (
+                "R98,U47,R26,D63,R33,U87,L62,D20,R33,U53,R51\nU98,R91,D20,R16,D67,R40,U7,R15,U6,R7",
+                410,
+            ),
+        ];
+
+        for example in &examples {
+            let wires = Wire::parse_wires(example.0);
+
+            let first_wire = wires.get(0).expect("Missing first wire");
+            let second_wire = wires.get(1).expect("Missing second wire");
+
+            let min_distance = first_wire
+                .intersections(second_wire)
+                .iter()
+                .map(|intersection| {
+                    first_wire.trace_distance(intersection)
+                        + second_wire.trace_distance(intersection)
+                })
                 .min()
                 .expect("No intersections found!");
 
