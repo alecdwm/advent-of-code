@@ -63,9 +63,17 @@ pub fn part1() {
     );
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 struct Wire {
     points: Vec<Point>,
+}
+
+impl Default for Wire {
+    fn default() -> Self {
+        Self {
+            points: vec![Point::zero()],
+        }
+    }
 }
 
 impl Wire {
@@ -110,7 +118,11 @@ impl Wire {
                         && min_y <= target_y
                         && target_y <= max_y
                     {
-                        intersections.push(Point::new(x, target_y));
+                        let intersection = Point::new(x, target_y);
+                        if intersection == Point::zero() {
+                            continue;
+                        }
+                        intersections.push(intersection);
                     }
                 } else {
                     assert_eq!(min_y, max_y);
@@ -123,7 +135,11 @@ impl Wire {
                         && min_x <= target_x
                         && target_x <= max_x
                     {
-                        intersections.push(Point::new(target_x, y));
+                        let intersection = Point::new(target_x, y);
+                        if intersection == Point::zero() {
+                            continue;
+                        }
+                        intersections.push(intersection);
                     }
                 }
             }
@@ -197,7 +213,7 @@ impl From<char> for WireSegmentDirection {
     }
 }
 
-#[derive(Debug, Default, Copy, Clone)]
+#[derive(Debug, Default, PartialEq, Copy, Clone)]
 struct Point {
     x: i64,
     y: i64,
