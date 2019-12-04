@@ -1,5 +1,6 @@
 //! --- Day 4: Secure Container ---
 
+use itertools::Itertools;
 use std::ops;
 
 /// You arrive at the Venus fuel depot only to discover it's protected by a password. The Elves had written the password on a sticky note, but someone threw it out.
@@ -58,17 +59,26 @@ pub fn part2() {
 }
 
 fn part1_test_password_against_facts(password: &str) -> bool {
+    // length must be 6
     if password.len() != 6 {
         return false;
     }
 
-    let chars: Vec<char> = password.chars().collect();
-
-    if chars.windows(2).any(|window| window[0] > window[1]) {
+    // digits must not decrease
+    if password
+        .chars()
+        .zip(password.chars().skip(1))
+        .any(|window| window.0 > window.1)
+    {
         return false;
     }
 
-    if !chars.windows(2).any(|window| window[0] == window[1]) {
+    // at least two concurrent digits must be the same
+    if !password
+        .chars()
+        .zip(password.chars().skip(1))
+        .any(|window| window.0 == window.1)
+    {
         return false;
     }
 
@@ -76,32 +86,27 @@ fn part1_test_password_against_facts(password: &str) -> bool {
 }
 
 fn part2_test_password_against_facts(password: &str) -> bool {
+    // length must be 6
     if password.len() != 6 {
         return false;
     }
 
-    let chars: Vec<char> = password.chars().collect();
-
-    if chars.windows(2).any(|window| window[0] > window[1]) {
+    // digits must not decrease
+    if password
+        .chars()
+        .zip(password.chars().skip(1))
+        .any(|window| window.0 > window.1)
+    {
         return false;
     }
 
-    let mut groups: Vec<Vec<char>> = vec![vec![*chars
-        .first()
-        .expect("Failed to get first character of password")]];
-
-    chars.windows(2).for_each(|window| {
-        if window[0] == window[1] {
-            groups
-                .last_mut()
-                .expect("Failed to get_mut last group")
-                .push(window[1]);
-        } else {
-            groups.push(vec![window[1]]);
-        }
-    });
-
-    if !groups.iter().any(|group| group.len() == 2) {
+    // at least one group of identical concurrent digits must be of length 2
+    if !password
+        .chars()
+        .group_by(|character| *character)
+        .into_iter()
+        .any(|(_character, group)| group.count() == 2)
+    {
         return false;
     }
 
