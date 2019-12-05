@@ -197,7 +197,7 @@ impl StepGraph {
     }
 
     fn next_step(&mut self, complete_step: bool) -> Option<char> {
-        if self.available_steps.len() < 1 {
+        if self.available_steps.is_empty() {
             return None;
         }
 

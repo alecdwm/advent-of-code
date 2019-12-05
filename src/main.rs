@@ -30,7 +30,7 @@ fn main() {
     puzzle_solutions.insert("2019::day5::part1", advent_of_code::year_2019::day5::part1);
     puzzle_solutions.insert("2019::day5::part2", advent_of_code::year_2019::day5::part2);
 
-    let command = match env::args().skip(1).next() {
+    let command = match env::args().nth(2) {
         Some(command) => command,
         None => {
             eprintln!(

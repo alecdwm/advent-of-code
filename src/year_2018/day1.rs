@@ -105,7 +105,7 @@ fn build_changes(input: &str) -> Vec<FrequencyChange> {
             magnitude: line
                 .trim_start_matches(|c| c == '+' || c == '-')
                 .parse()
-                .expect(&format!("parsing frequency change magnitude '{}'", line)),
+                .unwrap_or_else(|_| panic!("parsing frequency change magnitude '{}'", line)),
         })
     }
 

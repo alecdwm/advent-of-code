@@ -204,8 +204,8 @@ impl IntcodeInstruction {
 impl From<&IntcodeComputer> for IntcodeInstruction {
     fn from(state: &IntcodeComputer) -> Self {
         let instruction_header = state.memory.get(state.instruction_pointer);
-        let opcode = Opcode::from(*instruction_header);
-        let mut parser = ParameterParser::from(*instruction_header);
+        let opcode = Opcode::from(instruction_header);
+        let mut parser = ParameterParser::from(instruction_header);
 
         match opcode {
             Opcode(1) => Self::Add(
@@ -275,7 +275,7 @@ impl IntcodeParameter {
 
     fn get_value(&self, memory: &IntcodeProgram) -> i64 {
         match self {
-            Self::Position(address) => *memory.get(*address),
+            Self::Position(address) => memory.get(*address),
             Self::Value(value) => *value,
         }
     }
@@ -297,13 +297,13 @@ impl From<i64> for ParameterParser {
 }
 
 impl ParameterParser {
-    fn parse_next(&mut self, parameter: &i64) -> IntcodeParameter {
+    fn parse_next(&mut self, parameter: i64) -> IntcodeParameter {
         let mode = ParameterMode::from(&*self);
         let parameter = match mode {
             ParameterMode::PositionMode => {
-                IntcodeParameter::Position((*parameter).try_into().unwrap())
+                IntcodeParameter::Position(parameter.try_into().unwrap())
             }
-            ParameterMode::ImmediateMode => IntcodeParameter::Value(*parameter),
+            ParameterMode::ImmediateMode => IntcodeParameter::Value(parameter),
         };
 
         self.parameters_read += 1;
@@ -311,8 +311,8 @@ impl ParameterParser {
         parameter
     }
 
-    fn parse_writeonly(&mut self, parameter: &i64) -> IntcodeParameter {
-        let parameter = IntcodeParameter::Position((*parameter).try_into().unwrap());
+    fn parse_writeonly(&mut self, parameter: i64) -> IntcodeParameter {
+        let parameter = IntcodeParameter::Position(parameter.try_into().unwrap());
 
         self.parameters_read += 1;
 
@@ -342,8 +342,9 @@ pub struct IntcodeProgram {
 }
 
 impl IntcodeProgram {
-    pub fn get(&self, address: usize) -> &i64 {
-        self.data
+    pub fn get(&self, address: usize) -> i64 {
+        *self
+            .data
             .get(address)
             .unwrap_or_else(|| panic!("Failed to get data at address {}", address))
     }
@@ -375,7 +376,7 @@ impl From<&str> for IntcodeProgram {
         Self {
             data: string
                 .trim()
-                .split(",")
+                .split(',')
                 .map(|integer| integer.parse::<i64>())
                 .map(|parse_result| parse_result.expect("Failed to parse Intcode integer as i64"))
                 .collect(),

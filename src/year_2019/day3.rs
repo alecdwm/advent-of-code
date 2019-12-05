@@ -129,7 +129,7 @@ impl Default for Wire {
 
 impl Wire {
     fn parse_wires(serialized: &str) -> Vec<Self> {
-        serialized.trim().split("\n").map(Wire::from).collect()
+        serialized.trim().split('\n').map(Wire::from).collect()
     }
 
     fn intersections(&self, target: &Wire) -> Vec<Point> {
@@ -272,7 +272,7 @@ impl From<&str> for Wire {
 
         wire_serialized
             .trim()
-            .split(",")
+            .split(',')
             .for_each(|wire_segment| wire.add_point_from_segment(wire_segment));
 
         wire

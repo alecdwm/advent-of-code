@@ -121,7 +121,7 @@ impl FromStr for ops::RangeInclusive<i64> {
     fn from_str(string: &str) -> Self {
         let mut iter = string
             .trim()
-            .split("-")
+            .split('-')
             .map(|integer| integer.parse())
             .map(|parse_result| parse_result.expect("Failed to parse range integer as i64"));
 
