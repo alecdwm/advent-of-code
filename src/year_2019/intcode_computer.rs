@@ -30,6 +30,7 @@ impl IntcodeComputer {
     pub fn run(mut self) -> Self {
         loop {
             let next_instruction = IntcodeInstruction::from(&self);
+            let instruction_pointer_before_instruction = self.instruction_pointer;
             let instruction_length = next_instruction.length();
 
             match next_instruction {
@@ -78,10 +79,52 @@ impl IntcodeComputer {
                         .expect("Failed to send to output");
                 }
 
+                IntcodeInstruction::JumpIfTrue(test, jump_to) => {
+                    if test.get_value(&self.memory) != 0 {
+                        self.instruction_pointer =
+                            jump_to.get_value(&self.memory).try_into().unwrap();
+                    }
+                }
+
+                IntcodeInstruction::JumpIfFalse(test, jump_to) => {
+                    if test.get_value(&self.memory) == 0 {
+                        self.instruction_pointer =
+                            jump_to.get_value(&self.memory).try_into().unwrap();
+                    }
+                }
+
+                IntcodeInstruction::LessThan(one, two, output) => {
+                    let one = one.get_value(&self.memory);
+                    let two = two.get_value(&self.memory);
+
+                    let output_value = if one < two { 1 } else { 0 };
+
+                    let output_address = output
+                        .get_address()
+                        .expect("LessThan 'output' parameter must be an address");
+
+                    self.memory.replace(output_address, output_value)
+                }
+
+                IntcodeInstruction::Equals(one, two, output) => {
+                    let one = one.get_value(&self.memory);
+                    let two = two.get_value(&self.memory);
+
+                    let output_value = if one == two { 1 } else { 0 };
+
+                    let output_address = output
+                        .get_address()
+                        .expect("LessThan 'output' parameter must be an address");
+
+                    self.memory.replace(output_address, output_value)
+                }
+
                 IntcodeInstruction::Halt => break,
             }
 
-            self.instruction_pointer += instruction_length;
+            if instruction_pointer_before_instruction == self.instruction_pointer {
+                self.instruction_pointer += instruction_length;
+            }
         }
 
         self
@@ -124,6 +167,20 @@ enum IntcodeInstruction {
     /// Sends a single integer to output from the first parameter
     Output(IntcodeParameter),
 
+    /// If the first parameter is non-zero, sets the instruction pointer to the value of the second parameter.
+    JumpIfTrue(IntcodeParameter, IntcodeParameter),
+
+    /// If the first parameter is zero, sets the instruction pointer to the value of the second parameter.
+    JumpIfFalse(IntcodeParameter, IntcodeParameter),
+
+    /// If the first parameter is less than the second parameter, writes 1 to the third parameter.
+    /// Otherwise, writes 0 to the third parameter.
+    LessThan(IntcodeParameter, IntcodeParameter, IntcodeParameter),
+
+    /// If the first parameter is equal to the second parameter, writes 1 to the third parameter.
+    /// Otherwise, writes 0 to the third parameter.
+    Equals(IntcodeParameter, IntcodeParameter, IntcodeParameter),
+
     /// Halts the IntcodeComputer
     Halt,
 }
@@ -135,6 +192,10 @@ impl IntcodeInstruction {
             Self::Multiply(..) => 4,
             Self::Input(..) => 2,
             Self::Output(..) => 2,
+            Self::JumpIfTrue(..) => 3,
+            Self::JumpIfFalse(..) => 3,
+            Self::LessThan(..) => 4,
+            Self::Equals(..) => 4,
             Self::Halt => 1,
         }
     }
@@ -163,6 +224,24 @@ impl From<&IntcodeComputer> for IntcodeInstruction {
             Opcode(4) => {
                 Self::Output(parser.parse_next(state.memory.get(state.instruction_pointer + 1)))
             }
+            Opcode(5) => Self::JumpIfTrue(
+                parser.parse_next(state.memory.get(state.instruction_pointer + 1)),
+                parser.parse_next(state.memory.get(state.instruction_pointer + 2)),
+            ),
+            Opcode(6) => Self::JumpIfFalse(
+                parser.parse_next(state.memory.get(state.instruction_pointer + 1)),
+                parser.parse_next(state.memory.get(state.instruction_pointer + 2)),
+            ),
+            Opcode(7) => Self::LessThan(
+                parser.parse_next(state.memory.get(state.instruction_pointer + 1)),
+                parser.parse_next(state.memory.get(state.instruction_pointer + 2)),
+                parser.parse_writeonly(state.memory.get(state.instruction_pointer + 3)),
+            ),
+            Opcode(8) => Self::Equals(
+                parser.parse_next(state.memory.get(state.instruction_pointer + 1)),
+                parser.parse_next(state.memory.get(state.instruction_pointer + 2)),
+                parser.parse_writeonly(state.memory.get(state.instruction_pointer + 3)),
+            ),
             Opcode(99) => Self::Halt,
             Opcode(other) => panic!("Invalid Opcode encountered: {}", other),
         }
