@@ -275,7 +275,7 @@ impl IntcodeParameter {
 
     fn get_value(&self, memory: &IntcodeProgram) -> i64 {
         match self {
-            Self::Position(address) => *memory.get((*address).try_into().unwrap()),
+            Self::Position(address) => *memory.get(*address),
             Self::Value(value) => *value,
         }
     }
