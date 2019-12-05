@@ -89,7 +89,7 @@ pub fn part2() {
     let program = IntcodeProgram::from(input.as_str());
     let mut computer = IntcodeComputer::from(&program);
 
-    const DESIRED_OUTPUT: usize = 19690720;
+    const DESIRED_OUTPUT: i64 = 19690720;
 
     let mut result = None;
     'outer: for noun in 0..100 {

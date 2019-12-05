@@ -1,7 +1,12 @@
+use std::convert::TryInto;
+use std::sync::mpsc::{self, Receiver, Sender};
+
 #[derive(Debug)]
 pub struct IntcodeComputer {
     pub memory: IntcodeProgram,
     instruction_pointer: usize,
+    input: Option<Receiver<i64>>,
+    output: Option<Sender<i64>>,
 }
 
 impl IntcodeComputer {
@@ -10,29 +15,73 @@ impl IntcodeComputer {
         self.instruction_pointer = 0;
     }
 
+    pub fn create_input(&mut self) -> Sender<i64> {
+        let (input_tx, input_rx) = mpsc::channel();
+        self.input = Some(input_rx);
+        input_tx
+    }
+
+    pub fn create_output(&mut self) -> Receiver<i64> {
+        let (output_tx, output_rx) = mpsc::channel();
+        self.output = Some(output_tx);
+        output_rx
+    }
+
     pub fn run(mut self) -> Self {
         loop {
             let next_instruction = IntcodeInstruction::from(&self);
+            let instruction_length = next_instruction.length();
 
             match next_instruction {
-                IntcodeInstruction::Add(one_address, two_address, output_address) => {
-                    let one = *self.memory.get(one_address);
-                    let two = *self.memory.get(two_address);
+                IntcodeInstruction::Add(one, two, output) => {
+                    let one = one.get_value(&self.memory);
+                    let two = two.get_value(&self.memory);
+                    let output_address = output
+                        .get_address()
+                        .expect("Add 'output' parameter must be an address");
 
                     self.memory.replace(output_address, one + two)
                 }
 
-                IntcodeInstruction::Multiply(one_address, two_address, output_address) => {
-                    let one = *self.memory.get(one_address);
-                    let two = *self.memory.get(two_address);
+                IntcodeInstruction::Multiply(one, two, output) => {
+                    let one = one.get_value(&self.memory);
+                    let two = two.get_value(&self.memory);
+                    let output_address = output
+                        .get_address()
+                        .expect("Multiply 'output' parameter must be an address");
 
                     self.memory.replace(output_address, one * two)
+                }
+
+                IntcodeInstruction::Input(to) => {
+                    let input_value = self
+                        .input
+                        .as_ref()
+                        .expect("Program requires input but no input was connected!")
+                        .recv()
+                        .expect("Failed to receive from input");
+
+                    let to_address = to
+                        .get_address()
+                        .expect("Input 'to' parameter must be an address");
+
+                    self.memory.replace(to_address, input_value);
+                }
+
+                IntcodeInstruction::Output(from) => {
+                    let output_value = from.get_value(&self.memory);
+
+                    self.output
+                        .as_ref()
+                        .expect("Program requires output but no output was connected!")
+                        .send(output_value)
+                        .expect("Failed to send to output");
                 }
 
                 IntcodeInstruction::Halt => break,
             }
 
-            self.instruction_pointer += next_instruction.length()
+            self.instruction_pointer += instruction_length;
         }
 
         self
@@ -44,6 +93,8 @@ impl From<&IntcodeProgram> for IntcodeComputer {
         Self {
             memory: program.clone(),
             instruction_pointer: 0,
+            input: None,
+            output: None,
         }
     }
 }
@@ -53,17 +104,25 @@ impl From<&str> for IntcodeComputer {
         Self {
             memory: IntcodeProgram::from(string),
             instruction_pointer: 0,
+            input: None,
+            output: None,
         }
     }
 }
 
 #[derive(Debug)]
 enum IntcodeInstruction {
-    /// Adds the values from the first two addresses, writes the result to the third address
-    Add(usize, usize, usize),
+    /// Adds the values from the first two parameters, writes the result to the third parameter
+    Add(IntcodeParameter, IntcodeParameter, IntcodeParameter),
 
-    /// Multiplies the values from the first two addresses, writes the result to the third address
-    Multiply(usize, usize, usize),
+    /// Multiplies the values from the first two parameters, writes the result to the third parameter
+    Multiply(IntcodeParameter, IntcodeParameter, IntcodeParameter),
+
+    /// Takes a single integer from input and writes it to the first parameter
+    Input(IntcodeParameter),
+
+    /// Sends a single integer to output from the first parameter
+    Output(IntcodeParameter),
 
     /// Halts the IntcodeComputer
     Halt,
@@ -74,6 +133,8 @@ impl IntcodeInstruction {
         match self {
             Self::Add(..) => 4,
             Self::Multiply(..) => 4,
+            Self::Input(..) => 2,
+            Self::Output(..) => 2,
             Self::Halt => 1,
         }
     }
@@ -81,38 +142,134 @@ impl IntcodeInstruction {
 
 impl From<&IntcodeComputer> for IntcodeInstruction {
     fn from(state: &IntcodeComputer) -> Self {
-        let opcode = state.memory.get(state.instruction_pointer);
+        let instruction_header = state.memory.get(state.instruction_pointer);
+        let opcode = Opcode::from(*instruction_header);
+        let mut parser = ParameterParser::from(*instruction_header);
 
         match opcode {
-            1 => Self::Add(
-                *state.memory.get(state.instruction_pointer + 1),
-                *state.memory.get(state.instruction_pointer + 2),
-                *state.memory.get(state.instruction_pointer + 3),
+            Opcode(1) => Self::Add(
+                parser.parse_next(state.memory.get(state.instruction_pointer + 1)),
+                parser.parse_next(state.memory.get(state.instruction_pointer + 2)),
+                parser.parse_writeonly(state.memory.get(state.instruction_pointer + 3)),
             ),
-            2 => Self::Multiply(
-                *state.memory.get(state.instruction_pointer + 1),
-                *state.memory.get(state.instruction_pointer + 2),
-                *state.memory.get(state.instruction_pointer + 3),
+            Opcode(2) => Self::Multiply(
+                parser.parse_next(state.memory.get(state.instruction_pointer + 1)),
+                parser.parse_next(state.memory.get(state.instruction_pointer + 2)),
+                parser.parse_writeonly(state.memory.get(state.instruction_pointer + 3)),
             ),
-            99 => Self::Halt,
-            other => panic!("Invalid Opcode encountered: {}", other),
+            Opcode(3) => {
+                Self::Input(parser.parse_writeonly(state.memory.get(state.instruction_pointer + 1)))
+            }
+            Opcode(4) => {
+                Self::Output(parser.parse_next(state.memory.get(state.instruction_pointer + 1)))
+            }
+            Opcode(99) => Self::Halt,
+            Opcode(other) => panic!("Invalid Opcode encountered: {}", other),
+        }
+    }
+}
+
+#[derive(Debug)]
+struct Opcode(i64);
+impl From<i64> for Opcode {
+    fn from(instruction_header: i64) -> Self {
+        Self(get_digit(instruction_header, 1) * 10 + get_digit(instruction_header, 0))
+    }
+}
+
+#[derive(Debug)]
+enum IntcodeParameter {
+    /// PositionMode
+    Position(usize),
+
+    /// ImmediateMode
+    Value(i64),
+}
+
+impl IntcodeParameter {
+    fn get_address(&self) -> Option<usize> {
+        match self {
+            Self::Position(address) => Some(*address),
+            Self::Value(_) => None,
+        }
+    }
+
+    fn get_value(&self, memory: &IntcodeProgram) -> i64 {
+        match self {
+            Self::Position(address) => *memory.get((*address).try_into().unwrap()),
+            Self::Value(value) => *value,
+        }
+    }
+}
+
+#[derive(Debug)]
+struct ParameterParser {
+    instruction_header: i64,
+    parameters_read: u32,
+}
+
+impl From<i64> for ParameterParser {
+    fn from(instruction_header: i64) -> Self {
+        Self {
+            instruction_header,
+            parameters_read: 0,
+        }
+    }
+}
+
+impl ParameterParser {
+    fn parse_next(&mut self, parameter: &i64) -> IntcodeParameter {
+        let mode = ParameterMode::from(&*self);
+        let parameter = match mode {
+            ParameterMode::PositionMode => {
+                IntcodeParameter::Position((*parameter).try_into().unwrap())
+            }
+            ParameterMode::ImmediateMode => IntcodeParameter::Value(*parameter),
+        };
+
+        self.parameters_read += 1;
+
+        parameter
+    }
+
+    fn parse_writeonly(&mut self, parameter: &i64) -> IntcodeParameter {
+        let parameter = IntcodeParameter::Position((*parameter).try_into().unwrap());
+
+        self.parameters_read += 1;
+
+        parameter
+    }
+}
+
+#[derive(Debug)]
+enum ParameterMode {
+    PositionMode,
+    ImmediateMode,
+}
+
+impl From<&ParameterParser> for ParameterMode {
+    fn from(state: &ParameterParser) -> Self {
+        match get_digit(state.instruction_header, 2 + state.parameters_read) {
+            0 => Self::PositionMode,
+            1 => Self::ImmediateMode,
+            other => panic!("Invalid ParameterMode: {}", other),
         }
     }
 }
 
 #[derive(Debug, Clone)]
 pub struct IntcodeProgram {
-    data: Vec<usize>,
+    data: Vec<i64>,
 }
 
 impl IntcodeProgram {
-    pub fn get(&self, address: usize) -> &usize {
+    pub fn get(&self, address: usize) -> &i64 {
         self.data
             .get(address)
             .unwrap_or_else(|| panic!("Failed to get data at address {}", address))
     }
 
-    pub fn replace(&mut self, address: usize, replacement: usize) {
+    pub fn replace(&mut self, address: usize, replacement: i64) {
         let integer = self
             .data
             .get_mut(address)
@@ -121,7 +278,7 @@ impl IntcodeProgram {
         *integer = replacement;
     }
 
-    pub fn data(&self) -> &Vec<usize> {
+    pub fn data(&self) -> &Vec<i64> {
         &self.data
     }
 
@@ -140,9 +297,14 @@ impl From<&str> for IntcodeProgram {
             data: string
                 .trim()
                 .split(",")
-                .map(|integer| integer.parse::<usize>())
-                .map(|parse_result| parse_result.expect("Failed to parse Intcode integer as usize"))
+                .map(|integer| integer.parse::<i64>())
+                .map(|parse_result| parse_result.expect("Failed to parse Intcode integer as i64"))
                 .collect(),
         }
     }
+}
+
+/// Gets the digit from number at a zero-indexed position from the right (in base 10)
+fn get_digit(number: i64, position: u32) -> i64 {
+    (number / (10_i64.pow(position))) % 10
 }
