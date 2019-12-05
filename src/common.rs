@@ -9,6 +9,9 @@ pub fn read_stdin_to_string() -> String {
     loop {
         io::stdin().read_line(&mut line).unwrap();
         if line.trim() == "" {
+            if input.trim() == "" {
+                continue;
+            }
             break;
         }
         input.push_str(&line);
