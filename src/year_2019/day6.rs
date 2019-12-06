@@ -1,7 +1,6 @@
 //! --- Day 6: Universal Orbit Map ---
 
 use std::collections::HashMap;
-use std::fmt;
 
 /// You've landed at the Universal Orbit Map facility on Mercury. Because navigation in space often involves transferring between orbits, the orbit maps here are useful for finding efficient routes between, for example, you and Santa. You download a map of the local orbits (your puzzle input).
 ///
@@ -118,9 +117,7 @@ pub fn part1() {
 pub fn part2() {
     let input = crate::common::read_stdin_to_string();
     let orbit_map = OrbitMap::from(input.as_str());
-
-    let minimum_transfers =
-        orbit_map.minimum_transfers(&OrbitMapID::from("YOU"), &OrbitMapID::from("SAN"));
+    let minimum_transfers = orbit_map.minimum_transfers("SAN", "YOU");
 
     println!(
         "The minimum number of orbital transfers required to move from the object YOU are orbiting to the object SAN is orbiting: {}",
@@ -129,44 +126,46 @@ pub fn part2() {
 }
 
 #[derive(Debug, Default)]
-struct OrbitMap {
-    bodies: HashMap<OrbitMapID, OrbitMapBody>,
+struct OrbitMap<'a> {
+    bodies: HashMap<&'a str, OrbitMapBody<'a>>,
 }
 
-impl OrbitMap {
-    fn get_body(&self, id: &OrbitMapID) -> &OrbitMapBody {
+impl<'a> OrbitMap<'a> {
+    fn get_body(&self, id: &str) -> &OrbitMapBody {
         self.bodies
             .get(id)
             .unwrap_or_else(|| panic!("{} body not found in OrbitMap", id))
     }
 
-    fn get_body_parent_id(&self, id: &OrbitMapID) -> &OrbitMapID {
-        self.get_body(id)
+    fn get_body_parent(&self, id: &str) -> &OrbitMapBody {
+        let parent_id = self
+            .get_body(id)
             .parent
-            .as_ref()
-            .unwrap_or_else(|| panic!("{} body missing parent", id))
+            .unwrap_or_else(|| panic!("{} body missing parent", id));
+
+        self.get_body(parent_id)
     }
 
-    fn add_orbit_relation(&mut self, target: &OrbitMapID, source: &OrbitMapID) {
+    fn add_orbit_relation(&mut self, target_id: &'a str, source_id: &'a str) {
         // insert target if it doesn't exist
         self.bodies
-            .entry(target.clone())
-            .or_insert_with(|| OrbitMapBody::new(target));
+            .entry(target_id)
+            .or_insert_with(|| OrbitMapBody::new(target_id));
 
         // insert source if it doesn't exist
         let source = self
             .bodies
-            .entry(source.clone())
-            .or_insert_with(|| OrbitMapBody::new(source));
+            .entry(source_id)
+            .or_insert_with(|| OrbitMapBody::new(source_id));
 
         // set source.parent to target
-        if let Some(parent) = &source.parent {
+        if let Some(parent_id) = &source.parent {
             panic!(
-                "Failed adding orbit relation, body already has a parent: {}",
-                parent
+                "Failed adding orbit relation, source body {} already has a parent: {}",
+                source_id, parent_id
             );
         }
-        source.parent = Some(target.clone());
+        source.parent = Some(target_id);
     }
 
     fn orbit_count_checksum(&self) -> usize {
@@ -176,15 +175,15 @@ impl OrbitMap {
             .sum()
     }
 
-    fn minimum_transfers(&self, source_id: &OrbitMapID, target_id: &OrbitMapID) -> usize {
-        let source = self.get_body(self.get_body_parent_id(source_id));
-        let target = self.get_body(self.get_body_parent_id(target_id));
+    fn minimum_transfers(&self, target_id: &'a str, source_id: &'a str) -> usize {
+        let source = self.get_body_parent(source_id);
+        let target = self.get_body_parent(target_id);
 
-        let source_parents = source.parents(&self).collect::<Vec<_>>();
-        let target_parents = target.parents(&self).collect::<Vec<_>>();
+        let source_parents: Vec<_> = source.parents(self).collect();
+        let target_parents: Vec<_> = target.parents(self).collect();
 
         let mut minimum_transfers = 0;
-        let mut common_parent: Option<OrbitMapID> = None;
+        let mut common_parent = None;
 
         for parent in source_parents.iter() {
             minimum_transfers += 1;
@@ -193,7 +192,7 @@ impl OrbitMap {
                 .iter()
                 .any(|target_parent| parent.id == target_parent.id)
             {
-                common_parent = Some(parent.id.clone());
+                common_parent = Some(parent.id);
                 break;
             }
         }
@@ -217,83 +216,66 @@ impl OrbitMap {
     }
 }
 
-impl From<&str> for OrbitMap {
-    fn from(string: &str) -> Self {
-        let mut orbit_map: Self = Default::default();
+impl<'a> From<&'a str> for OrbitMap<'a> {
+    fn from(string: &'a str) -> Self {
+        string
+            .trim()
+            .split('\n')
+            .map(|orbit| (orbit, orbit.split(')')))
+            .fold(Default::default(), |mut orbit_map, (orbit, mut bodies)| {
+                orbit_map.add_orbit_relation(
+                    bodies
+                        .next()
+                        .unwrap_or_else(|| panic!("Failed to parse orbit relation {}", orbit)),
+                    bodies
+                        .next()
+                        .unwrap_or_else(|| panic!("Failed to parse orbit relation {}", orbit)),
+                );
 
-        string.trim().split('\n').for_each(|orbit| {
-            let mut bodies = orbit.split(')').map(|id| OrbitMapID(id.to_string()));
-            orbit_map.add_orbit_relation(
-                &bodies
-                    .next()
-                    .unwrap_or_else(|| panic!("Failed to parse orbit relation {}", orbit)),
-                &bodies
-                    .next()
-                    .unwrap_or_else(|| panic!("Failed to parse orbit relation {}", orbit)),
-            );
-        });
-
-        orbit_map
+                orbit_map
+            })
     }
 }
 
 #[derive(Debug)]
-struct OrbitMapBody {
-    id: OrbitMapID,
-    parent: Option<OrbitMapID>,
+struct OrbitMapBody<'a> {
+    id: &'a str,
+    parent: Option<&'a str>,
 }
 
-impl OrbitMapBody {
-    fn new(id: &OrbitMapID) -> Self {
-        Self {
-            id: id.clone(),
-            parent: None,
-        }
+impl<'a> OrbitMapBody<'a> {
+    fn new(id: &'a str) -> Self {
+        Self { id, parent: None }
     }
 
-    fn parents<'a>(&self, map: &'a OrbitMap) -> OrbitMapBodyParentIterator<'a> {
+    fn parents(&self, map: &'a OrbitMap) -> OrbitMapBodyParentIterator<'a> {
         OrbitMapBodyParentIterator {
             map,
-            next_parent_id: self.parent.clone(),
+            next_parent_id: self.parent,
         }
     }
 }
 
 struct OrbitMapBodyParentIterator<'a> {
-    map: &'a OrbitMap,
-    next_parent_id: Option<OrbitMapID>,
+    map: &'a OrbitMap<'a>,
+    next_parent_id: Option<&'a str>,
 }
 
 impl<'a> Iterator for OrbitMapBodyParentIterator<'a> {
-    type Item = &'a OrbitMapBody;
+    type Item = &'a OrbitMapBody<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let parent = match self.next_parent_id.as_ref() {
-            Some(next_parent_id) => match self.map.bodies.get(&next_parent_id) {
-                Some(parent) => parent,
+        let next_parent = match self.next_parent_id {
+            Some(next_parent_id) => match self.map.bodies.get(next_parent_id) {
+                Some(next_parent) => next_parent,
                 None => return None,
             },
             None => return None,
         };
 
-        self.next_parent_id = parent.parent.clone();
+        self.next_parent_id = next_parent.parent;
 
-        Some(parent)
-    }
-}
-
-#[derive(Debug, Clone, Hash, Eq, PartialEq)]
-struct OrbitMapID(String);
-
-impl From<&str> for OrbitMapID {
-    fn from(string: &str) -> Self {
-        Self(string.to_string())
-    }
-}
-
-impl fmt::Display for OrbitMapID {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self)
+        Some(next_parent)
     }
 }
 
@@ -319,8 +301,7 @@ mod tests {
         );
 
         assert_eq!(
-            OrbitMap::from(example.0)
-                .minimum_transfers(&OrbitMapID::from("YOU"), &OrbitMapID::from("SAN")),
+            OrbitMap::from(example.0).minimum_transfers("SAN", "YOU"),
             example.1
         );
     }
