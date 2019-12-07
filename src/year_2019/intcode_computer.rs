@@ -1,5 +1,6 @@
 use std::convert::TryInto;
 use std::sync::mpsc::{self, Receiver, Sender};
+use std::thread;
 
 #[derive(Debug)]
 pub struct IntcodeComputer {
@@ -13,6 +14,21 @@ impl IntcodeComputer {
     pub fn load(&mut self, program: &IntcodeProgram) {
         self.memory = program.clone();
         self.instruction_pointer = 0;
+    }
+
+    pub fn run_new_in_thread(program: IntcodeProgram) -> (Sender<i64>, Receiver<i64>) {
+        let (input_tx, input_rx) = mpsc::channel();
+        let (output_tx, output_rx) = mpsc::channel();
+
+        thread::spawn(move || {
+            let mut computer = IntcodeComputer::from(&program.clone());
+            computer.input = Some(input_rx);
+            computer.output = Some(output_tx);
+
+            computer.run();
+        });
+
+        (input_tx, output_rx)
     }
 
     pub fn create_input(&mut self) -> Sender<i64> {

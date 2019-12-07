@@ -32,6 +32,7 @@ fn main() {
     puzzle_solutions.insert("2019::day6::part1", advent_of_code::year_2019::day6::part1);
     puzzle_solutions.insert("2019::day6::part2", advent_of_code::year_2019::day6::part2);
     puzzle_solutions.insert("2019::day7::part1", advent_of_code::year_2019::day7::part1);
+    puzzle_solutions.insert("2019::day7::part2", advent_of_code::year_2019::day7::part2);
 
     let command = match env::args().nth(1) {
         Some(command) => command,

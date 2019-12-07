@@ -2,6 +2,7 @@
 
 use super::{IntcodeComputer, IntcodeProgram};
 use itertools::Itertools;
+use std::sync::mpsc::{Receiver, SendError, Sender};
 
 /// Based on the navigational maps, you're going to need to send more power to your ship's thrusters to reach Santa in time. To do this, you'll need to configure a series of amplifiers already installed on the ship.
 ///
@@ -49,7 +50,7 @@ use itertools::Itertools;
 pub fn part1() {
     let input = crate::common::read_stdin_to_string();
     let amplifier_controller = IntcodeProgram::from(input.as_str());
-    let highest_signal = calculate_highest_signal(&amplifier_controller);
+    let highest_signal = part1_calculate_highest_signal(&amplifier_controller);
 
     println!(
         "The highest signal that can be sent to the thrusters: {}",
@@ -57,52 +58,128 @@ pub fn part1() {
     );
 }
 
-fn calculate_highest_signal(amplifier_controller: &IntcodeProgram) -> i64 {
+/// It's no good - in this configuration, the amplifiers can't generate a large enough output signal to produce the thrust you'll need. The Elves quickly talk you through rewiring the amplifiers into a feedback loop:
+///
+///       O-------O  O-------O  O-------O  O-------O  O-------O
+/// 0 -+->| Amp A |->| Amp B |->| Amp C |->| Amp D |->| Amp E |-.
+///    |  O-------O  O-------O  O-------O  O-------O  O-------O |
+///    |                                                        |
+///    '--------------------------------------------------------+
+///                                                             |
+///                                                             v
+///                                                      (to thrusters)
+///
+/// Most of the amplifiers are connected as they were before; amplifier A's output is connected to amplifier B's input, and so on. However, the output from amplifier E is now connected into amplifier A's input. This creates the feedback loop: the signal will be sent through the amplifiers many times.
+///
+/// In feedback loop mode, the amplifiers need totally different phase settings: integers from 5 to 9, again each used exactly once. These settings will cause the Amplifier Controller Software to repeatedly take input and produce output many times before halting. Provide each amplifier its phase setting at its first input instruction; all further input/output instructions are for signals.
+///
+/// Don't restart the Amplifier Controller Software on any amplifier during this process. Each one should continue receiving and sending signals until it halts.
+///
+/// All signals sent or received in this process will be between pairs of amplifiers except the very first signal and the very last signal. To start the process, a 0 signal is sent to amplifier A's input exactly once.
+///
+/// Eventually, the software on the amplifiers will halt after they have processed the final loop. When this happens, the last output signal from amplifier E is sent to the thrusters. Your job is to find the largest output signal that can be sent to the thrusters using the new phase settings and feedback loop arrangement.
+///
+/// Here are some example programs:
+///
+///     Max thruster signal 139629729 (from phase setting sequence 9,8,7,6,5):
+///
+///     3,26,1001,26,-4,26,3,27,1002,27,2,27,1,27,26,
+///     27,4,27,1001,28,-1,28,1005,28,6,99,0,0,5
+///
+///     Max thruster signal 18216 (from phase setting sequence 9,7,8,5,6):
+///
+///     3,52,1001,52,-5,52,3,53,1,52,56,54,1007,54,5,55,1005,55,26,1001,54,
+///     -5,54,1105,1,12,1,53,54,53,1008,54,0,55,1001,55,1,55,2,53,55,53,4,
+///     53,1001,56,-1,56,1005,56,6,99,0,0,0,0,10
+///
+/// Try every combination of the new phase settings on the amplifier feedback loop. What is the highest signal that can be sent to the thrusters?
+pub fn part2() {
+    let input = crate::common::read_stdin_to_string();
+    let amplifier_controller = IntcodeProgram::from(input.as_str());
+    let highest_signal = part2_calculate_highest_signal(&amplifier_controller);
+
+    println!(
+        "The highest signal that can be sent to the thrusters: {}",
+        highest_signal
+    );
+}
+
+fn part1_calculate_highest_signal(amplifier_controller: &IntcodeProgram) -> i64 {
     const PHASE_SETTINGS_START: i64 = 0;
     const PHASE_SETTINGS_COUNT: usize = 5;
 
-    (PHASE_SETTINGS_START..PHASE_SETTINGS_COUNT as i64)
+    (PHASE_SETTINGS_START..PHASE_SETTINGS_START + (PHASE_SETTINGS_COUNT as i64))
         .permutations(PHASE_SETTINGS_COUNT)
         .map(|phase_settings| {
             phase_settings
                 .iter()
                 .map(|phase_setting| Amplifier::new(amplifier_controller, *phase_setting))
-                .fold(0, |signal, amplifier| amplifier.amplify_signal(signal))
+                .fold(0, |signal, amplifier| {
+                    amplifier
+                        .amplify_signal(signal)
+                        .expect("Failed to amplify signal")
+                })
         })
         .max()
         .expect("Failed to generate any phase settings")
 }
 
-struct Amplifier<'a> {
-    controller_rom: &'a IntcodeProgram,
-    phase_setting: i64,
+fn part2_calculate_highest_signal(amplifier_controller: &IntcodeProgram) -> i64 {
+    const PHASE_SETTINGS_START: i64 = 5;
+    const PHASE_SETTINGS_COUNT: usize = 5;
+
+    (PHASE_SETTINGS_START..PHASE_SETTINGS_START + (PHASE_SETTINGS_COUNT as i64))
+        .permutations(PHASE_SETTINGS_COUNT)
+        .map(|phase_settings| {
+            phase_settings
+                .iter()
+                .map(|phase_setting| Amplifier::new(amplifier_controller, *phase_setting))
+                .collect()
+        })
+        .map(|amplifiers: Vec<_>| {
+            let mut signal = 0;
+
+            for amplifier in amplifiers.iter().cycle() {
+                signal = match amplifier.amplify_signal(signal) {
+                    Some(signal) => signal,
+                    None => break,
+                }
+            }
+
+            signal
+        })
+        .max()
+        .expect("Failed to generate any phase settings")
 }
 
-impl<'a> Amplifier<'a> {
-    fn new(controller_rom: &'a IntcodeProgram, phase_setting: i64) -> Self {
-        Self {
-            controller_rom,
-            phase_setting,
-        }
+struct Amplifier {
+    input: Sender<i64>,
+    output: Receiver<i64>,
+}
+
+impl Amplifier {
+    fn new(controller_rom: &IntcodeProgram, phase_setting: i64) -> Self {
+        let (input, output) = IntcodeComputer::run_new_in_thread(controller_rom.clone());
+
+        input
+            .send(phase_setting)
+            .expect("Failed to send phase_setting to amplifier controller");
+
+        Self { input, output }
     }
 
-    fn amplify_signal(&self, signal: i64) -> i64 {
-        let mut controller = IntcodeComputer::from(self.controller_rom);
-        let input = controller.create_input();
-        let output = controller.create_output();
+    fn amplify_signal(&self, signal: i64) -> Option<i64> {
+        let result = self.input.send(signal);
+        if let Err(SendError(_)) = result {
+            return None;
+        }
 
-        input
-            .send(self.phase_setting)
-            .expect("Failed to send phase_setting to amplifier_controller");
-        input
-            .send(signal)
-            .expect("Failed to send signal to amplifier_controller");
-
-        controller.run();
-
-        output
+        let signal = self
+            .output
             .recv()
-            .expect("Failed to receive amplifier_controller output")
+            .expect("Failed to receive amplifier controller output");
+
+        Some(signal)
     }
 }
 
@@ -120,7 +197,26 @@ mod tests {
 
         for example in &examples {
             let amplifier_controller = IntcodeProgram::from(example.0);
-            assert_eq!(calculate_highest_signal(&amplifier_controller), example.1);
+            assert_eq!(
+                part1_calculate_highest_signal(&amplifier_controller),
+                example.1
+            );
+        }
+    }
+
+    #[test]
+    fn test_part2_examples() {
+        let examples = [
+            ("3,26,1001,26,-4,26,3,27,1002,27,2,27,1,27,26,27,4,27,1001,28,-1,28,1005,28,6,99,0,0,5", 139629729),
+            ("3,52,1001,52,-5,52,3,53,1,52,56,54,1007,54,5,55,1005,55,26,1001,54,-5,54,1105,1,12,1,53,54,53,1008,54,0,55,1001,55,1,55,2,53,55,53,4,53,1001,56,-1,56,1005,56,6,99,0,0,0,0,10", 18216),
+        ];
+
+        for example in &examples {
+            let amplifier_controller = IntcodeProgram::from(example.0);
+            assert_eq!(
+                part2_calculate_highest_signal(&amplifier_controller),
+                example.1
+            );
         }
     }
 }
