@@ -59,11 +59,11 @@ pub fn part1() {
     computer.memory.replace(1, 12);
     computer.memory.replace(2, 2);
 
-    let result = computer.run();
+    computer.run();
 
     println!(
         "The value left at position 0 after the program halts: {}",
-        result.memory.get(0)
+        computer.memory.get(0)
     );
 }
 
@@ -97,7 +97,7 @@ pub fn part2() {
             computer.memory.replace(1, noun);
             computer.memory.replace(2, verb);
 
-            computer = computer.run();
+            computer.run();
 
             if computer.memory.get(0) == DESIRED_OUTPUT {
                 result = Some((noun, verb));
@@ -136,12 +136,11 @@ mod tests {
         ];
 
         for example in &examples {
-            let result = IntcodeComputer::from(example.0)
-                .run()
-                .memory
-                .data_serialized();
+            let mut computer = IntcodeComputer::from(example.0);
 
-            assert_eq!(result, example.1);
+            computer.run();
+
+            assert_eq!(computer.memory.data_serialized(), example.1);
         }
     }
 }

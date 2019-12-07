@@ -27,9 +27,9 @@ impl IntcodeComputer {
         output_rx
     }
 
-    pub fn run(mut self) -> Self {
+    pub fn run(&mut self) {
         loop {
-            let next_instruction = IntcodeInstruction::from(&self);
+            let next_instruction = IntcodeInstruction::from(&*self);
             let instruction_pointer_before_instruction = self.instruction_pointer;
             let instruction_length = next_instruction.length();
 
@@ -126,8 +126,6 @@ impl IntcodeComputer {
                 self.instruction_pointer += instruction_length;
             }
         }
-
-        self
     }
 }
 
