@@ -6,6 +6,7 @@ use std::thread;
 pub struct IntcodeComputer {
     pub memory: IntcodeProgram,
     instruction_pointer: usize,
+    relative_base: i64,
     input: Option<Receiver<i64>>,
     output: Option<Sender<i64>>,
 }
@@ -14,6 +15,7 @@ impl IntcodeComputer {
     pub fn load(&mut self, program: &IntcodeProgram) {
         self.memory = program.clone();
         self.instruction_pointer = 0;
+        self.relative_base = 0;
     }
 
     pub fn run_new_in_thread(program: IntcodeProgram) -> (Sender<i64>, Receiver<i64>) {
@@ -51,20 +53,20 @@ impl IntcodeComputer {
 
             match next_instruction {
                 IntcodeInstruction::Add(one, two, output) => {
-                    let one = one.get_value(&self.memory);
-                    let two = two.get_value(&self.memory);
+                    let one = one.get_value(&self);
+                    let two = two.get_value(&self);
                     let output_address = output
-                        .get_address()
+                        .get_address(&self)
                         .expect("Add 'output' parameter must be an address");
 
                     self.memory.replace(output_address, one + two)
                 }
 
                 IntcodeInstruction::Multiply(one, two, output) => {
-                    let one = one.get_value(&self.memory);
-                    let two = two.get_value(&self.memory);
+                    let one = one.get_value(&self);
+                    let two = two.get_value(&self);
                     let output_address = output
-                        .get_address()
+                        .get_address(&self)
                         .expect("Multiply 'output' parameter must be an address");
 
                     self.memory.replace(output_address, one * two)
@@ -79,14 +81,14 @@ impl IntcodeComputer {
                         .expect("Failed to receive from input");
 
                     let to_address = to
-                        .get_address()
+                        .get_address(&self)
                         .expect("Input 'to' parameter must be an address");
 
                     self.memory.replace(to_address, input_value);
                 }
 
                 IntcodeInstruction::Output(from) => {
-                    let output_value = from.get_value(&self.memory);
+                    let output_value = from.get_value(&self);
 
                     self.output
                         .as_ref()
@@ -96,43 +98,47 @@ impl IntcodeComputer {
                 }
 
                 IntcodeInstruction::JumpIfTrue(test, jump_to) => {
-                    if test.get_value(&self.memory) != 0 {
-                        self.instruction_pointer =
-                            jump_to.get_value(&self.memory).try_into().unwrap();
+                    if test.get_value(&self) != 0 {
+                        self.instruction_pointer = jump_to.get_value(&self).try_into().unwrap();
                     }
                 }
 
                 IntcodeInstruction::JumpIfFalse(test, jump_to) => {
-                    if test.get_value(&self.memory) == 0 {
-                        self.instruction_pointer =
-                            jump_to.get_value(&self.memory).try_into().unwrap();
+                    if test.get_value(&self) == 0 {
+                        self.instruction_pointer = jump_to.get_value(&self).try_into().unwrap();
                     }
                 }
 
                 IntcodeInstruction::LessThan(one, two, output) => {
-                    let one = one.get_value(&self.memory);
-                    let two = two.get_value(&self.memory);
+                    let one = one.get_value(&self);
+                    let two = two.get_value(&self);
 
                     let output_value = if one < two { 1 } else { 0 };
 
                     let output_address = output
-                        .get_address()
+                        .get_address(&self)
                         .expect("LessThan 'output' parameter must be an address");
 
                     self.memory.replace(output_address, output_value)
                 }
 
                 IntcodeInstruction::Equals(one, two, output) => {
-                    let one = one.get_value(&self.memory);
-                    let two = two.get_value(&self.memory);
+                    let one = one.get_value(&self);
+                    let two = two.get_value(&self);
 
                     let output_value = if one == two { 1 } else { 0 };
 
                     let output_address = output
-                        .get_address()
+                        .get_address(&self)
                         .expect("LessThan 'output' parameter must be an address");
 
                     self.memory.replace(output_address, output_value)
+                }
+
+                IntcodeInstruction::RelativeBaseOffset(offset) => {
+                    let offset = offset.get_value(&self);
+
+                    self.relative_base = self.relative_base + offset;
                 }
 
                 IntcodeInstruction::Halt => break,
@@ -150,6 +156,7 @@ impl From<&IntcodeProgram> for IntcodeComputer {
         Self {
             memory: program.clone(),
             instruction_pointer: 0,
+            relative_base: 0,
             input: None,
             output: None,
         }
@@ -161,6 +168,7 @@ impl From<&str> for IntcodeComputer {
         Self {
             memory: IntcodeProgram::from(string),
             instruction_pointer: 0,
+            relative_base: 0,
             input: None,
             output: None,
         }
@@ -195,6 +203,9 @@ enum IntcodeInstruction {
     /// Otherwise, writes 0 to the third parameter.
     Equals(IntcodeParameter, IntcodeParameter, IntcodeParameter),
 
+    /// Adjusts the relative base by the value of its only parameter.
+    RelativeBaseOffset(IntcodeParameter),
+
     /// Halts the IntcodeComputer
     Halt,
 }
@@ -210,6 +221,7 @@ impl IntcodeInstruction {
             Self::JumpIfFalse(..) => 3,
             Self::LessThan(..) => 4,
             Self::Equals(..) => 4,
+            Self::RelativeBaseOffset(..) => 2,
             Self::Halt => 1,
         }
     }
@@ -256,6 +268,9 @@ impl From<&IntcodeComputer> for IntcodeInstruction {
                 parser.parse_next(state.memory.get(state.instruction_pointer + 2)),
                 parser.parse_writeonly(state.memory.get(state.instruction_pointer + 3)),
             ),
+            Opcode(9) => Self::RelativeBaseOffset(
+                parser.parse_next(state.memory.get(state.instruction_pointer + 1)),
+            ),
             Opcode(99) => Self::Halt,
             Opcode(other) => panic!("Invalid Opcode encountered: {}", other),
         }
@@ -277,20 +292,27 @@ enum IntcodeParameter {
 
     /// ImmediateMode
     Value(i64),
+
+    /// RelativeMode
+    Relative(i64),
 }
 
 impl IntcodeParameter {
-    fn get_address(&self) -> Option<usize> {
+    fn get_address(&self, computer: &IntcodeComputer) -> Option<usize> {
         match self {
             Self::Position(address) => Some(*address),
             Self::Value(_) => None,
+            Self::Relative(address) => Some((computer.relative_base + address).try_into().unwrap()),
         }
     }
 
-    fn get_value(&self, memory: &IntcodeProgram) -> i64 {
+    fn get_value(&self, computer: &IntcodeComputer) -> i64 {
         match self {
-            Self::Position(address) => memory.get(*address),
+            Self::Position(address) => computer.memory.get(*address),
             Self::Value(value) => *value,
+            Self::Relative(address) => computer
+                .memory
+                .get((computer.relative_base + address).try_into().unwrap()),
         }
     }
 }
@@ -318,6 +340,7 @@ impl ParameterParser {
                 IntcodeParameter::Position(parameter.try_into().unwrap())
             }
             ParameterMode::ImmediateMode => IntcodeParameter::Value(parameter),
+            ParameterMode::RelativeMode => IntcodeParameter::Relative(parameter),
         };
 
         self.parameters_read += 1;
@@ -326,7 +349,14 @@ impl ParameterParser {
     }
 
     fn parse_writeonly(&mut self, parameter: i64) -> IntcodeParameter {
-        let parameter = IntcodeParameter::Position(parameter.try_into().unwrap());
+        let mode = ParameterMode::from(&*self);
+        let parameter = match mode {
+            ParameterMode::PositionMode => {
+                IntcodeParameter::Position(parameter.try_into().unwrap())
+            }
+            ParameterMode::ImmediateMode => panic!("ImmediateMode invalid for writeonly parameter"),
+            ParameterMode::RelativeMode => IntcodeParameter::Relative(parameter),
+        };
 
         self.parameters_read += 1;
 
@@ -338,6 +368,7 @@ impl ParameterParser {
 enum ParameterMode {
     PositionMode,
     ImmediateMode,
+    RelativeMode,
 }
 
 impl From<&ParameterParser> for ParameterMode {
@@ -345,6 +376,7 @@ impl From<&ParameterParser> for ParameterMode {
         match get_digit(state.instruction_header, 2 + state.parameters_read) {
             0 => Self::PositionMode,
             1 => Self::ImmediateMode,
+            2 => Self::RelativeMode,
             other => panic!("Invalid ParameterMode: {}", other),
         }
     }
