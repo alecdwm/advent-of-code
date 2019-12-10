@@ -357,13 +357,14 @@ pub struct IntcodeProgram {
 
 impl IntcodeProgram {
     pub fn get(&self, address: usize) -> i64 {
-        *self
-            .data
-            .get(address)
-            .unwrap_or_else(|| panic!("Failed to get data at address {}", address))
+        *self.data.get(address).unwrap_or(&0)
     }
 
     pub fn replace(&mut self, address: usize, replacement: i64) {
+        if self.data.len() <= address {
+            self.data.resize(address + 1, 0);
+        }
+
         let integer = self
             .data
             .get_mut(address)
