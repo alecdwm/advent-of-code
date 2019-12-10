@@ -66,6 +66,30 @@ pub fn part1() {
     );
 }
 
+/// You now have a complete Intcode computer.
+///
+/// Finally, you can lock on to the Ceres distress signal! You just need to boost your sensors using the BOOST program.
+///
+/// The program runs in sensor boost mode by providing the input instruction the value 2. Once run, it will boost the sensors automatically, but it might take a few seconds to complete the operation on slower hardware. In sensor boost mode, the program will output a single value: the coordinates of the distress signal.
+///
+/// Run the BOOST program in sensor boost mode. What are the coordinates of the distress signal?
+pub fn part2() {
+    let input = crate::common::read_stdin_to_string();
+    let mut computer = IntcodeComputer::from(input.as_str());
+
+    let input_tx = computer.create_input();
+    let output_rx = computer.create_output();
+
+    const SENSOR_BOOST_MODE_ID: i64 = 2;
+    input_tx.send(SENSOR_BOOST_MODE_ID).unwrap();
+
+    computer.run();
+
+    let coordinates = output_rx.recv().unwrap();
+
+    println!("The coordinates of the distress signal: {}", coordinates);
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
